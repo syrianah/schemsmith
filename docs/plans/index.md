@@ -26,7 +26,6 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [02-formats](active/02-formats.md): Structure model, `.litematic` v6/v7, Sponge `.schem`, vanilla `.nbt`, `info`/`dump`/`convert`. NOT STARTED · depends on: 01 · PR: — · blockers: —
 - [03-registry](active/03-registry.md): per-version block registry, `validate`. NOT STARTED · depends on: 02 · PR: — · blockers: — (uses defaults of OQ-2, OQ-4)
 - [04-redstone-lint](active/04-redstone-lint.md): power graph, lint rules, `lint`/`trace`; catches both timer bugs. NOT STARTED · depends on: 02, 03 · PR: — · blockers: —
 - [05-mcp-cli](active/05-mcp-cli.md): MCP server with bounded tools, edit plans. NOT STARTED · depends on: 02, 03, 04 · PR: — · blockers: —
@@ -40,6 +39,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 - [00-tooling](completed/00-tooling.md): uv, ruff, mypy, pytest, empty package and `schemsmith --version`. DONE (PR #3, 2026-11-01) · depends on: — · PR: #3 · blockers: —
 - [01-nbt](completed/01-nbt.md): own lossless NBT codec. DONE (PR #4, 2026-11-01) · depends on: 00 · PR: #4 · blockers: —
+- [02-formats](completed/02-formats.md): Structure model, `.litematic` v6/v7, Sponge `.schem`, vanilla `.nbt`, `info`/`dump`/`convert`. DONE (PR #8, 2026-11-01) · depends on: 01 · PR: #8 · blockers: —
 
 ## Do not build
 

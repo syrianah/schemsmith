@@ -1,6 +1,6 @@
 # Phase 02: Structure model and schematic formats
 
-**Status:** NOT STARTED
+**Status:** DONE (PR #8, 2026-11-01)
 **Branch:** `phase-02-formats`
 
 ## Goal
@@ -43,17 +43,17 @@ A user or agent can open, inspect, convert and save Litematica, Sponge and vanil
 
 ## Tasks
 
-- [ ] Failing tests first, using `fixtures/timer_v*.litematic`:
+- [x] Failing tests first, using `fixtures/timer_v*.litematic`:
   - all three load as one region of size 15×3×11, `data_version` 2975;
   - v1 has `minecraft:redstone_torch[lit=true]` at (12,2,2); v2 and v3 have air there;
   - v2 has `minecraft:repeater[delay=1,facing=west,locked=true,powered=false]` at (10,1,9); v3 has `minecraft:comparator[facing=west,mode=subtract,powered=false]` there;
   - non-air block count: v1 = 210, v2 = 209, v3 = 209.
-- [ ] Hypothesis: bit packing round-trips for palette sizes 1…4097 and region sizes including negative ones.
-- [ ] Implement the model and the `.litematic` reader/writer (v6 and v7).
-- [ ] Implement Sponge v2/v3 and vanilla `.nbt`; round-trip tests for each.
-- [ ] Conversion `.litematic` ↔ `.schem` ↔ `.nbt` keeps every block; a test proves it on the timer fixtures.
-- [ ] CLI commands with tests; `convert` refuses to overwrite without `--overwrite`.
-- [ ] Optional cross-check against litemapy (skipped if not installed).
+- [x] Hypothesis: bit packing round-trips for palette sizes 1…4097 and region sizes including negative ones.
+- [x] Implement the model and the `.litematic` reader/writer (v6 and v7).
+- [x] Implement Sponge v2/v3 and vanilla `.nbt`; round-trip tests for each.
+- [x] Conversion `.litematic` ↔ `.schem` ↔ `.nbt` keeps every block; a test proves it on the timer fixtures.
+- [x] CLI commands with tests; `convert` refuses to overwrite without `--overwrite`.
+- [x] Optional cross-check against litemapy (skipped if not installed).
 
 ## Acceptance criteria
 
@@ -81,11 +81,11 @@ uv run schemsmith dump fixtures/timer_v1_qc_dropper.litematic --layer 2
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 02: Structure model and schematic formats` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 02: Structure model and schematic formats` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -102,4 +102,47 @@ uv run schemsmith dump fixtures/timer_v1_qc_dropper.litematic --layer 2
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-02-formats`, 2026-11-01, Python 3.11.18.
+
+```text
+$ uv sync                                   [exit 0]
+$ uv run ruff check .
+All checks passed!
+$ uv run ruff format --check .              [exit 0]
+$ uv run mypy                               [exit 0]  Success: no issues found
+$ uv run pytest --cov=schemsmith.formats --cov=schemsmith.core --cov-report=term-missing
+src/schemsmith/core/__init__.py           3      0   100%
+src/schemsmith/core/blockstate.py        85      3    96%
+src/schemsmith/core/structure.py        168      0   100%
+src/schemsmith/formats/__init__.py       73      5    93%
+src/schemsmith/formats/_common.py        73      6    92%
+src/schemsmith/formats/bitpack.py        62      0   100%
+src/schemsmith/formats/errors.py          2      0   100%
+src/schemsmith/formats/litematic.py     145      1    99%
+src/schemsmith/formats/merge.py          29      3    90%
+src/schemsmith/formats/sponge.py        178      7    96%
+src/schemsmith/formats/vanilla.py        85      3    96%
+TOTAL                                   903     28    97%
+======================= 174 passed, 1 skipped in 11.03s ========================
+$ uv run schemsmith info fixtures/timer_v3_fixed.litematic
+Format:       litematic v6
+Data version: 2975
+Size:         15x3x11 (x*y*z)
+Blocks:       209 (non-air)
+$ uv run schemsmith dump fixtures/timer_v1_qc_dropper.litematic --layer 2
+    012345678901234
+  1 ............#A.
+  2 ............B..
+  3 .........C.....
+  9 .........C.....
+  # minecraft:hopper[enabled=false,facing=east]
+  A minecraft:jukebox[has_record=false]
+  B minecraft:redstone_torch[lit=true]
+  C minecraft:stone_button[face=floor,facing=north,powered=false]
+```
+
+Notes:
+- The skipped test is the optional litemapy cross-check. Run once with `uv run --with litemapy pytest tests/formats/test_litemapy_crosscheck.py`: 3 passed (litemapy not added to the project).
+- Legacy MCEdit `.schematic` reading is deferred to issue #7; such files fail with a clear `FormatError`.
+- Writing sorts block state properties by key, so a round-trip is lossless in content, but not byte-identical when a file stored properties unsorted (the timer fixtures do). `BlockStates` long arrays and all metadata stay identical.
+- `src/schemsmith/nbt/tags.py` change (outside the listed files): `Compound(...)` now accepts mixed dict literals for typing purposes; values are still checked at runtime.

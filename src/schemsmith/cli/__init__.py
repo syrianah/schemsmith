@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from schemsmith import __version__
+from schemsmith.cli import formats_cmds
+
+Handler = Callable[[argparse.Namespace], int]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +19,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Design, lint, simulate and fix Minecraft schematics.",
     )
     parser.add_argument("--version", action="version", version=f"schemsmith {__version__}")
-    parser.add_subparsers(dest="command", metavar="COMMAND")
+    sub = parser.add_subparsers(dest="command", metavar="COMMAND")
+    formats_cmds.register(sub)
     return parser
 
 
@@ -27,7 +31,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command is None:
         parser.print_help()
         return 0
-    parser.error(f"unknown command {args.command!r}")  # pragma: no cover
+    handler: Handler = args.handler
+    try:
+        return handler(args)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"schemsmith {args.command}: error: {exc}", file=sys.stderr)
+        return 2
 
 
 def run() -> None:
