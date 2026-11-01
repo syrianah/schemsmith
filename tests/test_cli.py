@@ -255,3 +255,17 @@ def test_edit_preview_and_apply(tmp_path: Path, capsys: pytest.CaptureFixture[st
     bad = tmp_path / "bad.json"
     bad.write_text('[{"op": "nope"}]')
     assert main(["edit", str(src), "--plan", str(bad)]) == 2
+
+
+def test_simulate_cli(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    v3 = str(FIX / "timer_v3_fixed.litematic")
+    script = str(FIX / "timer_start.yaml")
+    assert main(["simulate", v3, "--script", script, "--max-timeline", "3"]) == 0
+    out = capsys.readouterr().out
+    assert "bell" in out and "[PASS]" in out and "more (--max-timeline)" in out
+    assert main(["simulate", v3, "--script", script, "--format", "json", "--ticks", "100"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert data["passed"] is False and data["ticks"] == 100
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("actions: [{at: 1}]")
+    assert main(["simulate", v3, "--script", str(bad)]) == 2

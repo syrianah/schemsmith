@@ -76,3 +76,8 @@ Redstone and building knowledge lives in project skills, loaded automatically by
 - [`.claude/skills/minecraft-building/SKILL.md`](../.claude/skills/minecraft-building/SKILL.md): creative builds, hiding redstone, minigame structure, survival-friendly delivery, plus [ideas.md](../.claude/skills/minecraft-building/ideas.md).
 
 The real game is the source of truth, not our simulator or these skills. When unsure, write a `game`-marked test, and fix the skill in the same PR when it turns out to be wrong.
+
+### Simulator divergences
+
+The tick simulator (`schemsmith.redstone.sim`) is not the game. Its known simplifications are listed in `SIMPLIFICATIONS` (`src/schemsmith/redstone/sim/engine.py`) and printed with every result. Behaviour still to be confirmed in-game is tracked in issue #12. Until the phase 06 harness exists, the simulator is checked only against the timer scenarios in `fixtures/README.md` and the component timings in `tests/redstone/sim/test_components.py`.
+

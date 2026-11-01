@@ -36,6 +36,7 @@ TOOL_NAMES = (
     "schematic_validate",
     "redstone_lint",
     "redstone_trace",
+    "redstone_simulate",
 )
 
 _EXPECTED = (
@@ -142,6 +143,19 @@ def create_server(root: Path) -> MCPServer[Any]:
     ) -> dict[str, Any]:
         """What powers the block at (x,y,z) and what it powers."""
         return _wrap(tools.redstone_trace)(path, x, y, z, region)
+
+    @app.tool()
+    def redstone_simulate(
+        path: str,
+        script: dict[str, Any] | None = None,
+        script_path: str | None = None,
+        ticks: int | None = None,
+    ) -> dict[str, Any]:
+        """Simulate game ticks with an action script: {ticks, setup: {containers: [{pos, items}]},
+        actions: [{at, press|hold|toggle|insert: [x,y,z]}], watch: [[x,y,z]], expect: [...]}.
+        Returns events (bell, disc_start, bulb_on, ...), a timeline of watched blocks and
+        expectation results; truncated to fixed limits."""
+        return _wrap(tools.redstone_simulate)(path, script, script_path, ticks)
 
     return app
 

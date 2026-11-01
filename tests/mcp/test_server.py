@@ -13,7 +13,9 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.server.mcpserver.exceptions import ToolError
 
+from schemsmith.mcp import limits as L
 from schemsmith.mcp.server import TOOL_NAMES, create_server, main
+from schemsmith.mcp.tools import SchemsmithTools
 
 V1 = "timer_v1_qc_dropper.litematic"
 
@@ -108,3 +110,28 @@ def test_in_process_tools_and_errors(root: Path) -> None:
     names, ok = anyio.run(run)
     assert names == sorted(TOOL_NAMES)
     assert len(ok) == 8
+
+
+def test_redstone_simulate_tool(root: Path) -> None:
+    tools = SchemsmithTools(root)
+    (root / "start.yaml").write_text(
+        (Path(__file__).resolve().parents[2] / "fixtures" / "timer_start.yaml").read_text()
+    )
+    out = tools.redstone_simulate("timer_v3_fixed.litematic", script_path="start.yaml")
+    assert out["passed"] is True
+    assert len(out["timeline"]) <= L.MAX_SIM_TIMELINE and out["timeline_total"] > L.MAX_SIM_TIMELINE
+    inline = tools.redstone_simulate(
+        "timer_v3_fixed.litematic", script={"ticks": 50, "actions": [{"at": 1, "press": [9, 2, 3]}]}
+    )
+    assert inline["events"][0]["kind"] == "press"
+    assert tools.redstone_simulate("timer_v3_fixed.litematic", script={}, ticks=10**6)[
+        "response_limited"
+    ]
+    with pytest.raises(ValueError):
+        tools.redstone_simulate("timer_v3_fixed.litematic")
+    with pytest.raises(ValueError):
+        tools.redstone_simulate("timer_v3_fixed.litematic", script={"actions": [{"at": 1}]})
+    with pytest.raises(ValueError):
+        tools.redstone_simulate(
+            "timer_v3_fixed.litematic", script={"actions": [{"at": 1, "press": [0, 0, 0]}]}
+        )

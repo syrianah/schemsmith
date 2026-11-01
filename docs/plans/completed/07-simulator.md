@@ -1,6 +1,6 @@
 # Phase 07: Tick simulator
 
-**Status:** NOT STARTED
+**Status:** DONE (PR #15, 2026-11-01)
 **Branch:** `phase-07-simulator`
 
 ## Goal
@@ -37,11 +37,11 @@
 
 ## Tasks
 
-- [ ] Failing tests first: timer v3 full game (bell rings once, A back to full, B empty); v1 music only every other game; v2 gate stays open when the button is held at the end.
-- [ ] Unit tests per component (timing of repeater delays, hopper rate, torch burnout).
-- [ ] Simulator core, scheduled ticks, update order.
-- [ ] CLI and MCP tool with bounded timelines.
-- [ ] If phase 06 is merged: a cross-check test running the same scripts in both and comparing.
+- [x] Failing tests first: timer v3 full game (bell rings once, A back to full, B empty); v1 music only every other game; v2 gate stays open when the button is held at the end.
+- [x] Unit tests per component (timing of repeater delays, hopper rate, torch burnout).
+- [x] Simulator core, scheduled ticks, update order.
+- [x] CLI and MCP tool with bounded timelines.
+- [x] If phase 06 is merged: a cross-check test running the same scripts in both and comparing.
 
 ## Acceptance criteria
 
@@ -65,12 +65,12 @@ uv run schemsmith simulate fixtures/timer_v3_fixed.litematic --script fixtures/t
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Known divergences from the game documented
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 07: Tick simulator` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Known divergences from the game documented
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 07: Tick simulator` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -87,4 +87,33 @@ uv run schemsmith simulate fixtures/timer_v3_fixed.litematic --script fixtures/t
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-07-simulator`, 2026-11-01, Python 3.11.18.
+
+```text
+$ uv sync                        [exit 0]
+$ uv run ruff check .            All checks passed!
+$ uv run ruff format --check .   124 files already formatted
+$ uv run mypy                    Success: no issues found in 93 source files
+$ uv run pytest                  405 passed, 2 skipped (litemapy cross-check, network test)
+$ uv run schemsmith simulate fixtures/timer_v3_fixed.litematic --script fixtures/timer_start.yaml
+timer, one full game: 3300 game ticks (165.0 s) simulated in 45 ms, 1661 updates, confidence medium
+events:
+      20 gt  press        (9,2,3)
+      22 gt  bulb_on      (5,1,3)
+      26 gt  drop_into    (12,1,1) minecraft:music_disc_pigstep -> (12, 2, 1)
+      26 gt  disc_start   (13,2,1) minecraft:music_disc_pigstep
+    1528 gt  bulb_off     (5,1,3)
+    2986 gt  disc_end     (13,2,1)
+    3042 gt  bell         (12,1,7)
+expectations:
+  [PASS] bell events == 1 (actual: 1)
+  [PASS] disc_start events == 1 (actual: 1)
+  [PASS] items in [4, 1, 7] == 188 (actual: 188)
+  [PASS] items in [5, 1, 7] == 0 (actual: 0)
+```
+
+Notes:
+- Phase 06 is not merged (OQ-1), so there is no in-game oracle: A4 does not apply yet. The simulator is checked against the behaviour documented in `fixtures/README.md` and the redstone skill: v3 full game (bell once, A full, B empty); v1 music only in games 1 and 3; v2 (and v1) gate frozen open when the button is held at the end, v3 closed (`tests/redstone/sim/test_timer.py`).
+- Component timings: `tests/redstone/sim/test_components.py` (repeater delays 1–4 and pulse extension, locking, subtract gate, torch delay and burnout, wire decay, comparator delay and container signal, hopper 8 gt rate and locking, button pulses, lamp off delay, dropper/QC, dispenser, copper bulb, observer pulse, piston state, bell, note block, jukebox signal).
+- Benchmark: `tests/redstone/sim/test_performance.py`, the full timer (3300 gt) in about 0.05 s (target `FULL_TIMER_TARGET_S` = 1 s, budget `FULL_TIMER_BUDGET_S` = 5 s); one idle game hour in under 0.5 s.
+- Known divergences: `SIMPLIFICATIONS` in `engine.py`, `docs/agent-rules.md` §11, issue #12; pistons do not move blocks yet (issue #16).
