@@ -1,6 +1,6 @@
 # Phase 04: Redstone power graph and linter
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #13, 2026-11-01)
 **Branch:** `phase-04-redstone-lint`
 
 ## Goal
@@ -53,15 +53,15 @@
 
 ## Tasks
 
-- [ ] Failing tests first on the timer fixtures:
+- [x] Failing tests first on the timer fixtures:
   - `timer_v1_qc_dropper.litematic` → `qc-unintended-power` at (12,1,1), mentioning the torch at (12,2,2);
   - `timer_v2_locked_repeater.litematic` → `locked-repeater-may-freeze-on` at (10,1,9), suggesting `comparator[mode=subtract]`;
   - `timer_v3_fixed.litematic` → neither rule fires.
-- [ ] At least 30 small unit circuits (built in code or as tiny fixtures) covering every rule, positive and negative.
-- [ ] Power graph with strong/weak power, QC and locking; unit tests per component.
-- [ ] Wire shape recomputation; `wire-shape-inconsistent` fires on the timer wire at (8,1,3).
-- [ ] `trace` output: sources and sinks of a block, readable as text and JSON.
-- [ ] Suggested fixes as edit plans that, when applied, make the rule stop firing (test for the two timer bugs).
+- [x] At least 30 small unit circuits (built in code or as tiny fixtures) covering every rule, positive and negative.
+- [x] Power graph with strong/weak power, QC and locking; unit tests per component.
+- [x] Wire shape recomputation; `wire-shape-inconsistent` fires on the timer wire at (8,1,3).
+- [x] `trace` output: sources and sinks of a block, readable as text and JSON.
+- [x] Suggested fixes as edit plans that, when applied, make the rule stop firing (test for the two timer bugs).
 
 ## Acceptance criteria
 
@@ -90,11 +90,11 @@ uv run schemsmith trace fixtures/timer_v1_qc_dropper.litematic 12 1 1
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 04: Redstone power graph and linter` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 04: Redstone power graph and linter` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -111,4 +111,38 @@ uv run schemsmith trace fixtures/timer_v1_qc_dropper.litematic 12 1 1
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-04-redstone-lint`, 2026-11-01, Python 3.11.18.
+
+```text
+$ uv sync                        [exit 0]
+$ uv run ruff check .            All checks passed!
+$ uv run ruff format --check .   104 files already formatted
+$ uv run mypy                    Success: no issues found in 73 source files
+$ uv run pytest                  308 passed, 2 skipped (litemapy cross-check, network test)
+$ uv run schemsmith lint fixtures/timer_v1_qc_dropper.litematic
+warning: container-empty-but-required at (4,1,7): hopper clock (hopper (4,1,7) ↔ hopper (5,1,7)) holds no items; ...
+warning: container-empty-but-required at (12,1,1): dropper is activated by the circuit but holds no items (fed by hopper (13,1,1), also empty); ...
+warning: container-empty-but-required at (12,1,9): dispenser is activated by the circuit but holds no items; ...
+warning: locked-repeater-may-freeze-on at (10,1,9): repeater is used as a gate through locking (locked by repeater (10,1,8)). ...
+warning: qc-unintended-power at (12,1,1): dropper is quasi-powered by redstone_torch (12,2,2), which powers the position above it (12,2,1); that source is wired to control hopper (12,2,1). ...
+info: wire-shape-inconsistent at (2,1,3) / (8,1,3) / (10,1,2): saved wire shape is stale ...
+8 finding(s): 0 error(s), 5 warning(s), 3 info
+$ uv run schemsmith lint fixtures/timer_v2_locked_repeater.litematic
+... locked-repeater-may-freeze-on at (10,1,9) ... suggestion: replace it with minecraft:comparator[facing=west,mode=subtract,powered=false]
+7 finding(s): 0 error(s), 4 warning(s), 3 info     (no qc-unintended-power)
+$ uv run schemsmith lint fixtures/timer_v3_fixed.litematic
+6 finding(s): 0 error(s), 3 warning(s), 3 info     (neither qc-unintended-power nor locked-repeater-may-freeze-on)
+$ uv run schemsmith trace fixtures/timer_v1_qc_dropper.litematic 12 1 1
+(12,1,1) minecraft:dropper[facing=up,triggered=false]: may be powered
+  powered by:
+    - (12,1,2) minecraft:polished_andesite [block]
+    - (12,2,2) minecraft:redstone_torch[lit=true] [qc via (12,2,1)]
+    - (13,2,1) minecraft:jukebox[has_record=false] [qc via (12,2,1)]
+  powers: nothing
+```
+
+Notes:
+- v1 also contains the repeater gate at (10,1,9), so it rightly gets `locked-repeater-may-freeze-on` as well.
+- The remaining v3 findings are real fixture quirks listed in `fixtures/README.md` (stale wire shapes, items added by hand).
+- 35 unit circuits in `tests/redstone/test_rules_*.py` (every rule positive and negative), 18 graph tests in `test_graph.py`; applying the suggested fix silences the rule for both timer bugs and makes v2's gate identical to v3's (`test_fixes.py`).
+- Doubtful behaviour (jukebox QC, conductive heuristic) is documented in issue #12; diagnostics that depend on the conductive heuristic say so.
