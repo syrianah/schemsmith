@@ -26,7 +26,6 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [00-tooling](active/00-tooling.md): uv, ruff, mypy, pytest, empty package and `schemsmith --version`. NOT STARTED · depends on: — · PR: — · blockers: —
 - [01-nbt](active/01-nbt.md): own lossless NBT codec. NOT STARTED · depends on: 00 · PR: — · blockers: —
 - [02-formats](active/02-formats.md): Structure model, `.litematic` v6/v7, Sponge `.schem`, vanilla `.nbt`, `info`/`dump`/`convert`. NOT STARTED · depends on: 01 · PR: — · blockers: —
 - [03-registry](active/03-registry.md): per-version block registry, `validate`. NOT STARTED · depends on: 02 · PR: — · blockers: — (uses defaults of OQ-2, OQ-4)
@@ -40,7 +39,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Completed
 
-_None yet._
+- [00-tooling](completed/00-tooling.md): uv, ruff, mypy, pytest, empty package and `schemsmith --version`. DONE (PR #3, 2026-11-01) · depends on: — · PR: #3 · blockers: —
 
 ## Do not build
 

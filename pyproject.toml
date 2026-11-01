@@ -1,0 +1,73 @@
+[project]
+name = "schemsmith"
+version = "0.0.1"
+description = "Design, lint, simulate and fix Minecraft schematics with AI agents (Litematica, Sponge, vanilla)."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "schemsmith contributors" }]
+keywords = ["minecraft", "litematica", "schematic", "redstone", "mcp"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.scripts]
+schemsmith = "schemsmith.cli:run"
+
+[project.urls]
+Repository = "https://github.com/syrianah/schemsmith"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.100",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/schemsmith"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL", "C4"]
+ignore = ["PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+mypy_path = "src"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["schemsmith.nbt.*", "schemsmith.core.*", "schemsmith.formats.*"]
+strict = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "-p", "pytester"]
+markers = [
+    "network: needs internet access (skipped unless --run-network)",
+    "game: needs Java or Minecraft game files (skipped unless --run-game)",
+]

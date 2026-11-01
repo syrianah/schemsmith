@@ -1,0 +1,1 @@
+"""Static redstone power graph."""
