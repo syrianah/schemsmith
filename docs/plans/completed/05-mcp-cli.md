@@ -1,6 +1,6 @@
 # Phase 05: MCP server
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #14, 2026-11-01)
 **Branch:** `phase-05-mcp-cli`
 
 ## Goal
@@ -52,12 +52,12 @@ An AI client (Claude Code, Claude Desktop or any MCP client) can add schemsmith 
 
 ## Tasks
 
-- [ ] Failing tests first: start the server as a subprocess, list tools, call each tool on the timer fixtures.
-- [ ] Path confinement tests: `..`, absolute paths outside root and symlinks are rejected.
-- [ ] Limit tests: oversized queries and slices return `response_limited`.
-- [ ] End-to-end test: lint v1 → apply the suggested fix → new file → lint again → rule gone. Same for v2.
-- [ ] Edit plan format documented in a docstring and in README.
-- [ ] README: config snippet for Claude Code / Desktop and the demo.
+- [x] Failing tests first: start the server as a subprocess, list tools, call each tool on the timer fixtures.
+- [x] Path confinement tests: `..`, absolute paths outside root and symlinks are rejected.
+- [x] Limit tests: oversized queries and slices return `response_limited`.
+- [x] End-to-end test: lint v1 → apply the suggested fix → new file → lint again → rule gone. Same for v2.
+- [x] Edit plan format documented in a docstring and in README.
+- [x] README: config snippet for Claude Code / Desktop and the demo.
 
 ## Acceptance criteria
 
@@ -83,11 +83,11 @@ uv run schemsmith-mcp --help
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 05: MCP server` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 05: MCP server` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -103,4 +103,23 @@ uv run schemsmith-mcp --help
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-05-mcp-cli`, 2026-11-01, Python 3.11.18, `mcp` 2.3.0.
+
+```text
+$ uv sync                        [exit 0]
+$ uv run ruff check .            All checks passed!
+$ uv run ruff format --check .   116 files already formatted
+$ uv run mypy                    Success: no issues found in 85 source files
+$ uv run pytest                  355 passed, 2 skipped (litemapy cross-check, network test)
+$ uv run schemsmith-mcp --help
+usage: schemsmith-mcp [-h] [--root ROOT] [--version]
+
+schemsmith MCP server (stdio). Tools: schematic_summary, schematic_slice,
+schematic_inspect, schematic_query, schematic_edit, schematic_validate,
+redstone_lint, redstone_trace.
+```
+
+Notes:
+- A1: `tests/mcp/test_server.py` starts `schemsmith-mcp` as a subprocess, lists the tools and calls every one over stdio on the timer fixtures (this is the closest thing to a client transcript the agent has; A6 remains an owner check with Claude Code / Desktop).
+- A2: `tests/mcp/test_paths.py` (`..`, absolute paths, symlinked files and directories, dangling output symlinks). A3: `tests/mcp/test_limits.py`. A4/A5: `tests/mcp/test_timer_e2e.py` (lint → fix → new file → lint clean, input hash unchanged; overwrite only with `overwrite=true`).
+- `mcp` pinned to `>=2.3,<3` (the 2.x API: `mcp.server.mcpserver.MCPServer`).
