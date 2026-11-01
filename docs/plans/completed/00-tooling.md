@@ -1,6 +1,6 @@
 # Phase 00: Project tooling
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #3, 2026-11-01)
 **Branch:** `phase-00-tooling`
 
 ## Goal
@@ -43,12 +43,12 @@ A developer or agent can clone the repo, run `uv sync` and get a working, empty 
 
 ## Tasks
 
-- [ ] Write failing tests: `schemsmith --version` prints the package version; `python -m schemsmith --version` does the same; `network`/`game` tests are skipped without opt-in flags.
-- [ ] Create `pyproject.toml` with the src layout and the `schemsmith` console script.
-- [ ] Configure ruff, mypy and pytest (markers, `--strict-markers`).
-- [ ] Add the empty subpackages.
-- [ ] Add CONTRIBUTING, issue templates and the PR template.
-- [ ] Check that the Commands block in `AGENTS.md` matches reality.
+- [x] Write failing tests: `schemsmith --version` prints the package version; `python -m schemsmith --version` does the same; `network`/`game` tests are skipped without opt-in flags.
+- [x] Create `pyproject.toml` with the src layout and the `schemsmith` console script.
+- [x] Configure ruff, mypy and pytest (markers, `--strict-markers`).
+- [x] Add the empty subpackages.
+- [x] Add CONTRIBUTING, issue templates and the PR template.
+- [x] Check that the Commands block in `AGENTS.md` matches reality.
 
 ## Acceptance criteria
 
@@ -74,11 +74,11 @@ ls .github
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 00: Project tooling` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 00: Project tooling` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -94,4 +94,28 @@ ls .github
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-00-tooling`, 2026-11-01, Python 3.11.18, uv 0.11.32.
+
+```text
+$ uv sync
+ + schemsmith==0.0.1 (from file:///…/repo)
+ + typing-extensions==4.16.0
+[exit 0]
+$ uv run ruff check .
+All checks passed!
+$ uv run ruff format --check .
+43 files already formatted
+$ uv run mypy
+Success: no issues found in 17 source files
+$ uv run pytest
+tests/test_cli.py ....                                                   [100%]
+============================== 4 passed in 0.86s ===============================
+$ uv run schemsmith --version
+schemsmith 0.0.1
+$ ls -a .github
+.  ..  ISSUE_TEMPLATE  pull_request_template.md
+```
+
+Notes:
+- CLI uses the standard library `argparse` (no dependency needed for a small command tree).
+- No `.github/workflows/` (A5). The AGENTS.md Commands block already matches reality.
