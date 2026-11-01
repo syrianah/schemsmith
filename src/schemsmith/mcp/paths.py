@@ -34,8 +34,8 @@ def resolve_in_root(root: Path, user_path: str, *, must_exist: bool = True) -> P
 
 
 def relative(root: Path, path: Path) -> str:
-    """Path as shown to the client (relative to root)."""
-    return str(path.relative_to(root.resolve()))
+    """Path as shown to the client: relative to root, with ``/`` on every OS."""
+    return path.relative_to(root.resolve()).as_posix()
 
 
 def check_inside_root(root: Path, path: Path) -> None:

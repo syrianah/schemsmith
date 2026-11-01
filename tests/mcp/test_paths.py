@@ -70,3 +70,8 @@ def test_outside_error_does_not_leak_existence(root: Path) -> None:
         resolve_in_root(root, "../definitely-missing.litematic")
     with pytest.raises(FileNotFoundError):
         resolve_in_root(root, "missing-dir/new.litematic", must_exist=False)
+
+
+def test_relative_uses_forward_slashes(tmp_path: Path) -> None:
+    nested = tmp_path / "world" / "datapacks" / "x.nbt"
+    assert relative(tmp_path, nested.resolve()) == "world/datapacks/x.nbt"
