@@ -1,6 +1,6 @@
 # Phase 01: NBT codec
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-01-nbt`
 
 ## Goal

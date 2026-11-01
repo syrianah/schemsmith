@@ -30,6 +30,7 @@ dev = [
     "hypothesis>=6.100",
     "mypy>=1.10",
     "pytest>=8.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.5",
 ]
 
@@ -66,7 +67,7 @@ strict = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--strict-config", "-p", "pytester"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "-p", "pytester", "--import-mode=importlib"]
 markers = [
     "network: needs internet access (skipped unless --run-network)",
     "game: needs Java or Minecraft game files (skipped unless --run-game)",
