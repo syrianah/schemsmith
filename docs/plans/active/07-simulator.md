@@ -26,7 +26,7 @@
 ## Tech constraints
 
 - Python ≥ 3.11, `uv`, ruff, mypy, pytest. No CI: verification is local.
-- The game is the source of truth. Where the simulator is unsure, it says so in the result (`confidence`), and the gap goes into `docs/agent-rules.md` §11 or an issue.
+- The game is the source of truth. Where the simulator is unsure, it says so in the result (`confidence`), and the gap goes into the `minecraft-redstone` skill or an issue.
 - Simulation of the full timer (≈3000 game ticks) runs in under 5 seconds on a normal laptop (named constant for the test budget).
 
 ## Files this phase may create or modify
