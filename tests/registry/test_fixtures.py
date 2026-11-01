@@ -17,6 +17,7 @@ from schemsmith.registry import (
     select_registry,
     validate_structure,
 )
+from schemsmith.registry.experimental import default_release
 
 FIX = Path(__file__).resolve().parents[2] / "fixtures"
 FIXTURES = sorted(FIX.glob("timer_v*.litematic"))
@@ -77,3 +78,42 @@ def test_mismatch_with_committed_registry(path: Path) -> None:  # pragma: no cov
     mismatches = [d for d in diags if d.rule_id == DATA_VERSION_MISMATCH]
     assert len(mismatches) == 1
     assert "minecraft:waxed_copper_bulb" in mismatches[0].message
+
+
+@pytest.mark.skipif(not _HAVE_REAL, reason="no generated registries installed")
+def test_feature_flagged_block_suggests_the_normal_release() -> None:  # pragma: no cover - data
+    """Issue #11: the copper bulb is in the 1.20.4 report only behind the update_1_21 flag."""
+    history = load_history()
+    assert history is not None
+    assert history.introduced["minecraft:waxed_copper_bulb"] == "1.20.4"  # raw report data
+    s = load_structure(FIXTURES[-1])
+    d = next(
+        d
+        for d in validate_structure(s, select_registry(s.data_version), history)
+        if d.rule_id == DATA_VERSION_MISMATCH
+    )
+    assert "needs Minecraft 1.21+ (data version 3953)" in d.message
+    assert "1.20.4" in d.message and "experiment" in d.message
+    assert d.suggestion is not None and "3953" in d.suggestion
+
+
+def test_experimental_table() -> None:
+    assert default_release("minecraft:waxed_weathered_copper_bulb") == ("1.21", "update_1_21")
+    assert default_release("minecraft:tuff_bricks") == ("1.21", "update_1_21")
+    assert default_release("minecraft:crafter") == ("1.21", "update_1_21")
+    assert default_release("minecraft:tuff") is None  # vanilla since 1.17
+    assert default_release("minecraft:copper_block") is None
+    assert default_release("minecraft:calibrated_sculk_sensor") is None
+
+
+def test_flagged_block_between_experiment_and_release(mini: Registry, history: History) -> None:
+    # a 1.20.4 world with experiments may hold the bulb: not an error, but the message
+    # for an older file names the normal release
+    history.introduced["minecraft:waxed_copper_bulb"] = "1.20.4"
+    history.versions.append(("1.20.4", 3700))
+    history.versions.sort(key=lambda v: v[1])
+    r = Region((1, 1, 1))
+    r.set_block(0, 0, 0, "minecraft:waxed_copper_bulb[lit=false,powered=false]")
+    assert validate_structure(Structure(regions=[r], data_version=3700), mini, history) == []
+    d = validate_structure(Structure(regions=[r], data_version=2975), mini, history)[0]
+    assert "1.21+ (data version 3953)" in d.message and "update_1_21" in d.message
