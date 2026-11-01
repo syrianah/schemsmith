@@ -242,6 +242,8 @@ class Structure:
     format_version: int | None = None
     format_sub_version: int | None = None
     extra: Compound = field(default_factory=Compound)
+    notes: list[str] = field(default_factory=list, compare=False)
+    """What reading the file could not keep exactly (e.g. legacy ``.schematic`` ids)."""
 
     def block_count(self) -> int:
         """Non-air blocks over all regions."""

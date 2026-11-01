@@ -1,4 +1,5 @@
-"""Readers and writers for .litematic, Sponge .schem and vanilla .nbt files.
+"""Readers and writers for .litematic, Sponge .schem and vanilla .nbt files, plus a
+reader for legacy MCEdit .schematic files.
 
 >>> from schemsmith.formats import load_structure
 >>> s = load_structure("fixtures/timer_v3_fixed.litematic")  # doctest: +SKIP
@@ -12,12 +13,19 @@ from pathlib import Path
 from schemsmith.core import ConversionReport, Structure
 from schemsmith.formats.errors import FormatError
 from schemsmith.formats.litematic import read_litematic, write_litematic
+from schemsmith.formats.mcedit import is_mcedit, read_mcedit
 from schemsmith.formats.sponge import read_sponge, write_sponge
 from schemsmith.formats.vanilla import read_vanilla, write_vanilla
 from schemsmith.nbt import Compound, NamedTag, NbtError, decode, encode
 
 FORMATS = ("litematic", "sponge", "vanilla")
-EXTENSIONS = {".litematic": "litematic", ".schem": "sponge", ".nbt": "vanilla"}
+EXTENSIONS = {
+    ".litematic": "litematic",
+    ".schem": "sponge",
+    ".nbt": "vanilla",
+    ".schematic": "mcedit",
+}
+READ_ONLY = ("mcedit",)
 
 
 def detect_format(named: NamedTag) -> str:
@@ -26,15 +34,12 @@ def detect_format(named: NamedTag) -> str:
     if isinstance(root, Compound):
         if "Regions" in root and "Version" in root:
             return "litematic"
+        if is_mcedit(root) and "Version" not in root:
+            return "mcedit"
         if "Schematic" in root or ("Version" in root and ("Palette" in root or "Blocks" in root)):
             return "sponge"
         if "size" in root and ("palette" in root or "palettes" in root):
             return "vanilla"
-        if "Blocks" in root and "Materials" in root:
-            raise FormatError(
-                "legacy MCEdit .schematic files are not supported yet "
-                "(see https://github.com/syrianah/schemsmith/issues)"
-            )
     raise FormatError("unrecognised schematic format")
 
 
@@ -54,6 +59,8 @@ def read_structure(data: bytes) -> Structure:
         return read_litematic(named)
     if fmt == "sponge":
         return read_sponge(named)
+    if fmt == "mcedit":
+        return read_mcedit(named)
     return read_vanilla(named)
 
 
@@ -67,6 +74,11 @@ def encode_structure(
 ) -> tuple[bytes, ConversionReport]:
     """Encode to bytes (gzip). ``fmt`` defaults to the structure's own format."""
     fmt = fmt or structure.format
+    if fmt in READ_ONLY:
+        raise FormatError(
+            f"{fmt} files are read-only; write .litematic, .schem or .nbt instead "
+            "(e.g. schemsmith convert IN.schematic OUT.litematic)"
+        )
     if fmt == "litematic":
         named, report = write_litematic(structure)
     elif fmt == "sponge":
@@ -124,6 +136,7 @@ def _verify(original: Structure, written: Structure) -> None:
 __all__ = [
     "EXTENSIONS",
     "FORMATS",
+    "READ_ONLY",
     "FormatError",
     "detect_format",
     "encode_structure",

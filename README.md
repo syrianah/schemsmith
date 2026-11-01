@@ -13,6 +13,10 @@ Two bugs it is meant to catch automatically, both found by hand in a real build 
 - A torch meant to lock a hopper also powers the dropper below it through **quasi-connectivity**, so the dropper fires at the wrong moment.
 - A repeater used as a gate via **locking** freezes in the *on* state when the lock engages mid-pulse, leaving the gate open.
 
+## File formats
+
+Reads and writes Litematica `.litematic`, Sponge `.schem` (v1–v3) and vanilla structure `.nbt`. Reads legacy MCEdit/Schematica `.schematic` files (numeric block IDs, pre-1.13) and maps them to current blocks: `schemsmith convert old.schematic new.litematic`. IDs it cannot map become air and are listed, and so are dropped block entities.
+
 ## How this repo is built
 
 AI coding agents build schemsmith phase by phase. One phase = one agent = one pull request, merged by the agent once its verification passes. Agents start at [AGENTS.md](AGENTS.md); the phases are in [docs/plans/](docs/plans/index.md).
