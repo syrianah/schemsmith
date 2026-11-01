@@ -199,7 +199,8 @@ def write_registry(reg: Registry, out: Path = OUT) -> Path:
     path = out / f"{reg.mc_version}.json"
     data = reg.to_dict()
     assert data["format"] == REGISTRY_FORMAT
-    path.write_text(json.dumps(data, separators=(",", ":"), sort_keys=False) + "\n", "utf-8")
+    text = json.dumps(data, separators=(",", ":"), sort_keys=False) + "\n"
+    path.write_text(text, "utf-8", newline="\n")  # LF on every OS, so reruns are byte-identical
     return path
 
 
@@ -228,7 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.history:
         hist = build_history(registries)
         path = OUT / HISTORY_FILE
-        path.write_text(json.dumps(hist.to_dict(), separators=(",", ":")) + "\n", "utf-8")
+        text = json.dumps(hist.to_dict(), separators=(",", ":")) + "\n"
+        path.write_text(text, "utf-8", newline="\n")
         print(
             f"history: {len(hist.versions)} versions, {len(hist.introduced)} blocks, "
             f"{path.stat().st_size} bytes -> {path.relative_to(ROOT)}"
