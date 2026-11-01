@@ -7,7 +7,7 @@ Plans are first-class artifacts here: each phase file records the intent, scope 
 - One phase = one file in `active/` + one entry below = one agent = one branch `phase-NN-slug` = one PR `Phase NN: <title>`.
 - Status vocabulary (same in every file and in this index): `NOT STARTED` · `IN PROGRESS` · `BLOCKED (<IDs>)` · `DONE (PR #n, YYYY-MM-DD)`.
 - Finishing a phase = `git mv active/NN-*.md completed/` **and** update this index **in the same commit**.
-- Open questions are in [../OPEN-QUESTIONS.md](../OPEN-QUESTIONS.md). The owner (@syrianah) merges.
+- Open questions are in [../OPEN-QUESTIONS.md](../OPEN-QUESTIONS.md). The agent merges its own PR once verification passes (`../agent-rules.md` §5); the owner is @syrianah.
 
 ## Plan template
 

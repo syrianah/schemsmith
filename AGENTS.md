@@ -1,6 +1,6 @@
 # schemsmith — Agent Guide
 
-schemsmith is a Python library, CLI and MCP server that lets AI agents design, lint, simulate and fix Minecraft schematics (buildings, farms, redstone) for building in-game with Litematica. The package lives in `src/schemsmith/`, tests in `tests/`, regression schematics in `fixtures/`, plans and decisions in `docs/`. It ships to PyPI. There is no hosted service and no CI. One phase = one agent = one PR.
+schemsmith is a Python library, CLI and MCP server that lets AI agents design, lint, simulate and fix Minecraft schematics (buildings, farms, redstone) for building in-game with Litematica. The package lives in `src/schemsmith/`, tests in `tests/`, regression schematics in `fixtures/`, plans and decisions in `docs/`. It ships to PyPI. There is no hosted service and no CI. One phase = one agent = one PR, merged by the agent once verification passes.
 
 This file is loaded into every agent session. Keep it short; the detail lives in `docs/`.
 
@@ -19,7 +19,7 @@ This file is loaded into every agent session. Keep it short; the detail lives in
 2. **Verify before claiming done.** There is no CI: run the phase's Verification commands locally and paste their output in the PR. → [§2](docs/agent-rules.md#2-verification)
 3. **Keep the docs current, this file short.** New detail goes to `docs/`, this file gets a one-line pointer. → [§3](docs/agent-rules.md#3-docs)
 4. **No secrets in the repo.** Nothing needs secrets today; if you find one, stop and report. → [§4](docs/agent-rules.md#4-secrets)
-5. **Never merge, never push to `main`.** No force-push, no history rewrite; the owner merges. → [§5](docs/agent-rules.md#5-git)
+5. **Merge your own PR only when verification passes.** Never push directly to `main`, no force-push, no history rewrite. If any Verification command could not run, leave the PR open. → [§5](docs/agent-rules.md#5-git)
 6. **OPEN questions stay open.** Implement the stated default behind config, list the ID in the PR. A `BLOCKED` phase: stop and report. → [§6](docs/agent-rules.md#6-open-questions)
 7. **Never commit Mojang files** (server/client jars, textures, sounds). Derived data only with the script that regenerates it. → [§7](docs/agent-rules.md#7-mojang-files-and-eula)
 8. **Never accept the Minecraft EULA** on the owner's behalf. → [§7](docs/agent-rules.md#7-mojang-files-and-eula)
@@ -58,7 +58,7 @@ uv run schemsmith-mcp            # from phase 05
 
 - One phase = one agent = one branch `phase-NN-slug` = one PR titled `Phase NN: <title>`.
 - Work only on the phase your brief names. Read this file, `docs/agent-rules.md`, then your phase file in `docs/plans/active/`.
-- Finishing = fill the evidence section, set status `DONE`, `git mv` the file to `docs/plans/completed/` and update `docs/plans/index.md` **in the same commit**.
+- Finishing = fill the evidence section, set status `DONE`, `git mv` the file to `docs/plans/completed/` and update `docs/plans/index.md` **in the same commit**, open the PR, then merge it with `gh pr merge --merge --delete-branch`.
 - Lifecycle: [docs/README.md](docs/README.md). Template: [docs/plans/_TEMPLATE.md](docs/plans/_TEMPLATE.md).
 
 ## After a merge
@@ -72,4 +72,4 @@ git worktree prune
 git branch -d phase-NN-slug    # never -D
 ```
 
-The owner deletes the remote branch when merging.
+The remote branch is deleted by `--delete-branch` when the agent merges.

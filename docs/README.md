@@ -22,7 +22,7 @@ Each phase file copies what its agent needs, so an agent can work from `AGENTS.m
 1. The owner picks the next `NOT STARTED` phase from `plans/index.md` whose dependencies are merged, and gives an agent a prompt naming that phase file.
 2. The agent branches `phase-NN-slug` from the latest `main`, sets the status to `IN PROGRESS`, works through the tasks test-first and runs the Verification commands locally.
 3. Before opening the PR, the agent fills the evidence section, sets `DONE (PR #n, YYYY-MM-DD)`, moves the file with `git mv plans/active/NN-*.md plans/completed/` and updates `plans/index.md`, all in one commit.
-4. The agent opens one PR titled `Phase NN: <title>` and does not merge it.
-5. **The owner, `@syrianah`, reviews and merges.** There is no CI, so the pasted verification output is the evidence.
+4. The agent opens one PR titled `Phase NN: <title>` with the verification output pasted.
+5. **The agent merges its own PR** (`gh pr merge --merge --delete-branch`) once every Verification command has passed. If any could not run, the PR stays open for the owner, `@syrianah`. There is no CI, so the pasted output is the evidence; the owner can review merged PRs afterwards.
 
 A phase that depends on an open question stays `BLOCKED (<IDs>)` until the owner answers it in `OPEN-QUESTIONS.md`.
