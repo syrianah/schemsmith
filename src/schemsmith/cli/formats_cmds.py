@@ -90,7 +90,8 @@ def cmd_info(args: argparse.Namespace) -> int:
         return 0
     w, h, length = info["size"]
     print(f"File:         {args.file}")
-    print(f"Format:       {s.format} v{s.format_version}")
+    version = f" v{s.format_version}" if s.format_version is not None else ""
+    print(f"Format:       {s.format}{version}")
     print(f"Data version: {s.data_version}")
     if s.metadata.name:
         print(f"Name:         {s.metadata.name}")
