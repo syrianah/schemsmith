@@ -1,6 +1,6 @@
 # Phase 01: NBT codec
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #4, 2026-11-01)
 **Branch:** `phase-01-nbt`
 
 ## Goal
@@ -40,12 +40,12 @@ schemsmith can read and write any Minecraft NBT file (gzip-compressed or raw, bi
 
 ## Tasks
 
-- [ ] Failing tests first: decode known byte sequences for every tag type; encode them back byte-identically.
-- [ ] Hypothesis: `decode(encode(tree)) == tree` for random trees, including nested lists of compounds and empty lists.
-- [ ] Modified UTF-8 tests: `\x00`, BMP characters, emoji (surrogate pairs).
-- [ ] Limit tests: too deep, too many tags, too large → a clear `NbtError`, never a crash or hang.
-- [ ] Read all three `fixtures/timer_v*.litematic` (gzip NBT) and re-encode them: decompressed bytes must be identical.
-- [ ] Public API: `load(path_or_bytes) -> NamedTag`, `dump(tag, path, compressed=True)`.
+- [x] Failing tests first: decode known byte sequences for every tag type; encode them back byte-identically.
+- [x] Hypothesis: `decode(encode(tree)) == tree` for random trees, including nested lists of compounds and empty lists.
+- [x] Modified UTF-8 tests: `\x00`, BMP characters, emoji (surrogate pairs).
+- [x] Limit tests: too deep, too many tags, too large → a clear `NbtError`, never a crash or hang.
+- [x] Read all three `fixtures/timer_v*.litematic` (gzip NBT) and re-encode them: decompressed bytes must be identical.
+- [x] Public API: `load(path_or_bytes) -> NamedTag`, `dump(tag, path, compressed=True)`.
 
 ## Acceptance criteria
 
@@ -72,11 +72,11 @@ Add `pytest-cov` as a dev dependency if it is not there yet.
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 01: NBT codec` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 01: NBT codec` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -92,4 +92,32 @@ Add `pytest-cov` as a dev dependency if it is not there yet.
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-01-nbt`, 2026-11-01, Python 3.11.18.
+
+```text
+$ uv sync                                   [exit 0]
+$ uv run ruff check .
+All checks passed!
+$ uv run ruff format --check .
+53 files already formatted
+$ uv run mypy
+Success: no issues found in 27 source files
+$ uv run pytest --cov=schemsmith.nbt --cov-report=term-missing tests/nbt
+Name                             Stmts   Miss  Cover   Missing
+--------------------------------------------------------------
+src/schemsmith/nbt/__init__.py       4      0   100%
+src/schemsmith/nbt/codec.py        201      0   100%
+src/schemsmith/nbt/errors.py         2      0   100%
+src/schemsmith/nbt/mutf8.py         39      0   100%
+src/schemsmith/nbt/tags.py         251      1    99%   371
+--------------------------------------------------------------
+TOTAL                              497      1    99%
+============================== 69 passed in 8.86s ==============================
+$ uv run pytest
+============================== 73 passed in 2.32s ==============================
+```
+
+Notes:
+- `pyproject.toml` changed outside the listed files: `pytest-cov` dev dependency (asked for by this phase's Verification) and `--import-mode=importlib` so test files in different `tests/` subfolders may share a basename (e.g. `test_fixtures.py`).
+- Decoding follows Java's `DataInputStream.readUTF`, so a raw `00` byte in a string is accepted (Minecraft never writes one; it is re-encoded as `C0 80`).
+- Float/Double tags store raw IEEE-754 bits, so NaN payloads round-trip byte-identically.
