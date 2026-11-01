@@ -45,7 +45,7 @@ Full text behind the golden rules in [AGENTS.md](../AGENTS.md).
 - Never commit `server.jar`, client jars, textures, sounds or any other Mojang file. `*.jar` is in `.gitignore`.
 - Game files are downloaded only from Mojang's official version manifest (`https://piston-meta.mojang.com/mc/game/version_manifest_v2.json`) into an ignored cache (`.mc-cache/`).
 - Derived data (e.g. the block registry) may be committed only together with the script that regenerates it, subject to OQ-4.
-- Running Mojang's data generator (`java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports`) does not start a server. Running a real server does need the EULA. **Never write `eula=true` or accept the EULA in any other way on the owner's behalf** (OQ-1).
+- Running Mojang's data generator (`java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports`) does not start a server. Running a real server does need the EULA. **Never write `eula=true` or accept the EULA in any other way on the owner's behalf.** OQ-1 is answered: only the phase 06 harness may start a server, only on the owner's machine, and only when the owner's own `~/.schemsmith/eula.txt` exists (see `docs/OPEN-QUESTIONS.md`). Agents never create that file.
 
 ## 8. Dependencies and licensing
 

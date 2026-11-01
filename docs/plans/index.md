@@ -26,7 +26,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [06-harness](active/06-harness.md): in-game verification on a headless Fabric server. BLOCKED (OQ-1) · depends on: 02, 05 · PR: — · blockers: OQ-1
+- [06-harness](active/06-harness.md): in-game verification on a headless vanilla server (owner's machine only). NOT STARTED · depends on: 02, 05 · PR: — · blockers: — (OQ-1 answered; agent leaves the PR open for the owner's game run)
 - [10-release](active/10-release.md): packaging, docs site, 1.0. BLOCKED (OQ-5) · depends on: 05, 08, 09 · PR: — · blockers: OQ-5
 
 ## Completed
