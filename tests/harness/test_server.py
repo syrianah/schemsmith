@@ -63,11 +63,12 @@ def test_properties() -> None:
     assert "server-ip=127.0.0.1\n" in text and "online-mode=false\n" in text
     assert "enable-rcon=true\n" in text and "rcon.password=secret\n" in text
     assert "eula" not in text
+    assert "pause-when-empty-seconds=0\n" in text  # an empty server must keep ticking
 
 
-def test_argv_passes_acceptance_only_as_a_flag(tmp_path: Path) -> None:
+def test_argv_has_no_eula_flag(tmp_path: Path) -> None:
     argv = GameServer(config(tmp_path)).argv()
-    assert "-Dcom.mojang.eula.agree=true" in argv and argv[-1] == "nogui"
+    assert not any(a.startswith("-D") for a in argv) and argv[-1] == "nogui"
 
 
 def test_verify_end_to_end_with_a_fake_server(tmp_path: Path) -> None:
@@ -92,7 +93,7 @@ def test_verify_end_to_end_with_a_fake_server(tmp_path: Path) -> None:
     assert report.game.count("bell") == 1
     assert "PASSED" in report.format()
     assert report.to_dict()["simulator"]["passed"] is True
-    # the run folder is gone, and no eula.txt was written anywhere except the owner's own
+    # the run folder (with the copy of the owner's file) is gone; only the owner's own is left
     assert list((cfg.cache / "harness").iterdir()) == []
     assert eula_files(tmp_path) == ["home/.schemsmith/eula.txt"]
 
@@ -103,7 +104,9 @@ def test_keep_leaves_the_run_folder_for_debugging(tmp_path: Path) -> None:
         assert server.command("time query gametime").startswith("The time is")
     runs = list((cfg.cache / "harness").iterdir())
     assert len(runs) == 1 and (runs[0] / "server.log").is_file()
-    assert not (runs[0] / "eula.txt").exists()
+    # the kept run folder holds an unchanged copy of the owner's file
+    owner = tmp_path / "home" / ".schemsmith" / "eula.txt"
+    assert (runs[0] / "eula.txt").read_bytes() == owner.read_bytes()
 
 
 def test_start_timeout_kills_the_server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -115,9 +118,8 @@ def test_start_timeout_kills_the_server(tmp_path: Path, monkeypatch: pytest.Monk
     assert server.proc is None  # stopped and killed
 
 
-def test_server_without_the_flag_refuses(tmp_path: Path) -> None:
+def test_server_without_the_copy_refuses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     cfg = config(tmp_path)
-    server = GameServer(cfg)
-    server.argv = lambda: [sys.executable, str(FAKE), "nogui"]  # type: ignore[method-assign]
+    monkeypatch.setattr("schemsmith.harness.server.copy_acceptance", lambda *a: None)
     with pytest.raises(HarnessError, match="exited during start-up"):
-        server.start()
+        GameServer(cfg).start()

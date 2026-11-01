@@ -36,6 +36,27 @@ def test_long_output_in_several_packets() -> None:
         srv.close()
 
 
+def test_output_of_exactly_one_full_packet() -> None:
+    srv = FakeRconServer("pw", lambda c: "y" * 4096, chunk=4096)
+    try:
+        with RconClient("127.0.0.1", srv.port, "pw", timeout=5) as rcon:
+            assert rcon.command("a") == "y" * 4096
+            assert rcon.command("b") == "y" * 4096
+    finally:
+        srv.close()
+
+
+def test_many_quick_commands_one_packet_each() -> None:
+    """The vanilla server drops a connection whose read holds two packets."""
+    srv = FakeRconServer("pw", lambda c: f"ok {c}")
+    try:
+        with RconClient("127.0.0.1", srv.port, "pw", timeout=5) as rcon:
+            for i in range(200):
+                assert rcon.command(f"c{i}") == f"ok c{i}"
+    finally:
+        srv.close()
+
+
 def test_wrong_password() -> None:
     srv = FakeRconServer("pw", lambda c: "")
     try:

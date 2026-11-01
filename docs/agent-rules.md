@@ -87,7 +87,7 @@ The harness runs a schematic and an action script on a real vanilla server **on 
 
 Before the first run (owner):
 
-1. Read the Minecraft EULA at https://aka.ms/MinecraftEULA. If you accept it, create `~/.schemsmith/eula.txt` yourself (on Windows `%USERPROFILE%\.schemsmith\eula.txt`) with one line: the word `eula`, an equals sign, the word `true`. Any encoding the usual editors or PowerShell write is fine. **Agents never create this file**, and nothing in schemsmith writes it.
+1. Read the Minecraft EULA at https://aka.ms/MinecraftEULA. If you accept it, create `~/.schemsmith/eula.txt` yourself (on Windows `%USERPROFILE%\.schemsmith\eula.txt`) with one line: the word `eula`, an equals sign, the word `true`. Any encoding the usual editors or PowerShell write is fine. **Agents never create this file**, and nothing in schemsmith writes it; the harness only copies it, unchanged, into its throwaway server directory for one run.
 2. Install Java (the owner uses Java 26) and download the server jar once: `uv run python scripts/gen_registry.py 26.3`, which puts it in `.mc-cache/26.3/server.jar`.
 
 Run:

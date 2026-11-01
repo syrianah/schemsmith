@@ -1,8 +1,8 @@
 """Stands in for ``java ... -jar server.jar nogui`` in offline tests.
 
 Run as ``python fake_server.py <the server's arguments>`` in the run directory. It
-refuses to start without the EULA system property (like the real server without
-acceptance), creates ``world/level.dat``, and serves RCON on the configured port
+refuses to start without an accepting ``eula.txt`` in its working directory (like
+the real server), creates ``world/level.dat``, and serves RCON on the configured port
 with a :class:`FakeWorld`. ``FAKE_SERVER_MODE=hang`` never opens RCON.
 """
 
@@ -15,12 +15,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from schemsmith.harness.eula import decode_text, parse_eula
 from tests.harness.fake_rcon import FakeRconServer
 from tests.harness.fake_world import FakeWorld
 
 
 def main() -> int:
-    if "-Dcom.mojang.eula.agree=true" not in sys.argv:
+    eula = Path("eula.txt")
+    if not eula.is_file() or not parse_eula(decode_text(eula.read_bytes())):
         print("You need to agree to the EULA in order to run the server.", flush=True)
         return 1
     props = {}

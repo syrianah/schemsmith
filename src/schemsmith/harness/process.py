@@ -65,7 +65,8 @@ def kill_tree(
             )
         else:
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
+                # getattr: these names do not exist on Windows, where mypy also runs
+                getattr(os, "killpg")(proc.pid, getattr(signal, "SIGKILL"))  # noqa: B009
             except (ProcessLookupError, PermissionError):
                 proc.kill()
     try:

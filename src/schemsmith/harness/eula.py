@@ -2,9 +2,12 @@
 
 The owner records acceptance in a file they create themselves,
 ``~/.schemsmith/eula.txt``, with a line that sets ``eula`` to ``true``. This module
-only *reads* that file. It never creates, edits or copies it, and nothing in the
-harness writes an acceptance anywhere: the server learns about it only through
-the ``-Dcom.mojang.eula.agree`` system property on the run that passed the gate.
+only *reads* that file and never creates or edits it. The vanilla server reads its
+acceptance only from ``eula.txt`` in its own working directory (26.3 ignores the
+``-Dcom.mojang.eula.agree`` property), so after the gate passed, :func:`copy_acceptance`
+puts a byte-for-byte copy of the owner's file into the throwaway run directory, which
+is deleted with the run (owner's decision, OQ-1 amended 2026-11-01). Nothing in the
+harness ever writes an acceptance of its own.
 
 The file is read tolerantly, because Windows tools write it in many ways:
 UTF-8 with or without a BOM, UTF-16 (PowerShell 5.1 ``>`` writes UTF-16 LE with a
@@ -15,12 +18,11 @@ and ``!`` comment lines, and ``key: value`` like Java properties files.
 from __future__ import annotations
 
 import codecs
+import shutil
 from pathlib import Path
 
 EULA_URL = "https://aka.ms/MinecraftEULA"
 EULA_KEY = "eula"
-EULA_PROPERTY = "-Dcom.mojang.eula.agree=true"
-"""The JVM flag that passes the owner's acceptance to the server for one run."""
 
 
 class EulaNotAccepted(PermissionError):
@@ -84,10 +86,22 @@ def require_eula(path: Path | None = None) -> None:
     )
 
 
+def copy_acceptance(run_dir: Path, path: Path | None = None) -> Path:
+    """Copy the owner's accepted file, unchanged, to ``run_dir/eula.txt``.
+
+    Passes the gate first, so a file that does not accept is never copied.
+    """
+    source = path if path is not None else eula_file()
+    require_eula(source)
+    target = run_dir / "eula.txt"
+    shutil.copyfile(source, target)
+    return target
+
+
 __all__ = [
-    "EULA_PROPERTY",
     "EULA_URL",
     "EulaNotAccepted",
+    "copy_acceptance",
     "decode_text",
     "eula_accepted",
     "eula_file",

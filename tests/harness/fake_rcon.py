@@ -46,11 +46,15 @@ class FakeRconServer:
         authed = False
         with conn:
             while True:
-                head = conn.recv(4, socket.MSG_WAITALL)
-                if len(head) < 4:
+                # like the vanilla server: one read of at most 1460 bytes must hold
+                # exactly one packet, otherwise the connection is dropped
+                data = conn.recv(1460)
+                if len(data) < 4:
                     return
-                (length,) = struct.unpack("<i", head)
-                body = conn.recv(length, socket.MSG_WAITALL)
+                (length,) = struct.unpack("<i", data[:4])
+                if length != len(data) - 4:
+                    return
+                body = data[4:]
                 rid, kind = struct.unpack("<ii", body[:8])
                 text = body[8:-2].decode("utf-8")
                 if kind == 3:

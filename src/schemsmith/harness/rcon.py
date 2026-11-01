@@ -2,10 +2,13 @@
 
 Packet: ``int32 length`` (little endian, counts the rest), ``int32 request id``,
 ``int32 type``, payload bytes, two NUL bytes. Types: 3 = login, 2 = command,
-0 = response. A failed login answers with request id -1. Long command output
-arrives in several response packets, so every command is followed by a second
-packet of an unknown type: the server answers it after the command output, which
-marks the end of the reply.
+0 = response. A failed login answers with request id -1.
+
+The vanilla server reads one packet per socket read (at most 1460 bytes) and drops
+the connection when a read holds more than one packet, so the client sends exactly
+one packet and waits for its answer. Long output arrives split into response
+packets of 4096 characters; a full-size packet means more may follow, so the
+client then waits briefly for the next one.
 """
 
 from __future__ import annotations
@@ -19,6 +22,10 @@ COMMAND = 2
 RESPONSE = 0
 MAX_PAYLOAD = 1446
 """Longest command the vanilla server accepts in one packet."""
+CHUNK = 4096
+"""Characters per response packet; a full packet may be followed by more."""
+MORE_WAIT_S = 0.25
+"""How long to wait for a further packet after a full-size one."""
 
 
 class RconError(ConnectionError):
@@ -88,14 +95,26 @@ class RconClient:
         if len(cmd.encode("utf-8")) > MAX_PAYLOAD:
             raise RconError(f"command longer than {MAX_PAYLOAD} bytes")
         rid = self._send(COMMAND, cmd)
-        marker = self._send(RESPONSE, "")  # unknown type: answered after the output
         parts: list[str] = []
         while True:
             got_id, _kind, text = self._read()
-            if got_id == marker:
-                return "".join(parts)
             if got_id == rid:
                 parts.append(text)
+                if len(text) < CHUNK or not self._more_waiting():
+                    return "".join(parts)
+
+    def _more_waiting(self) -> bool:
+        """True if another packet arrives within :data:`MORE_WAIT_S`."""
+        assert self._sock is not None
+        self._sock.settimeout(MORE_WAIT_S)
+        try:
+            return bool(self._sock.recv(1, socket.MSG_PEEK))
+        except TimeoutError:
+            return False
+        except OSError as exc:
+            raise RconError(f"RCON receive failed: {exc}") from exc
+        finally:
+            self._sock.settimeout(self.timeout)
 
     def _send(self, kind: int, payload: str) -> int:
         assert self._sock is not None

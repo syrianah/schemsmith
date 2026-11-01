@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 from schemsmith.harness.eula import (
-    EULA_PROPERTY,
     EulaNotAccepted,
+    copy_acceptance,
     decode_text,
     eula_accepted,
     eula_file,
@@ -114,7 +114,20 @@ def test_default_location_is_the_users_home(
 def test_decoding_helpers() -> None:
     assert decode_text(codecs.BOM_UTF8 + b"a") == "a"
     assert parse_eula("﻿eula=true") is True
-    assert EULA_PROPERTY == "-Dcom.mojang.eula.agree=true"
+
+
+def test_copy_is_byte_for_byte_and_only_after_the_gate(tmp_path: Path) -> None:
+    data = codecs.BOM_UTF16_LE + ("# mine\r\n" + YES).encode("utf-16-le")
+    p = write(tmp_path, data)
+    run = tmp_path / "run"
+    run.mkdir()
+    assert copy_acceptance(run, p) == run / "eula.txt"
+    assert (run / "eula.txt").read_bytes() == data and p.read_bytes() == data
+    (run / "eula.txt").unlink()
+    p.write_text("eula=false", encoding="utf-8")
+    with pytest.raises(EulaNotAccepted):
+        copy_acceptance(run, p)
+    assert not (run / "eula.txt").exists()
 
 
 def test_no_acceptance_in_the_package() -> None:

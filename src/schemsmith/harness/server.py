@@ -8,9 +8,9 @@ Order of operations (each step only after the previous one succeeded):
    ``scripts/gen_registry.py`` from Mojang's official manifest; never committed);
 3. a fresh directory ``.mc-cache/harness/run-*`` with ``server.properties``:
    127.0.0.1, random ports, offline mode, RCON with a random password, a flat
-   world; no ``eula.txt`` is written;
-4. ``java -Dcom.mojang.eula.agree=true -jar server.jar nogui`` in its own process
-   group, output to ``server.log``;
+   world, and a copy of the owner's own ``eula.txt`` (the server reads acceptance only
+   from its working directory; the copy goes away with the run directory);
+4. ``java -jar server.jar nogui`` in its own process group, output to ``server.log``;
 5. wait for RCON, install the structure as a data pack (the ``schemsmith install``
    writer), ``/reload``, force-load the chunks, ``/place template``;
 6. on exit, error, timeout or Ctrl+C: ``/stop``, then kill the process tree, then
@@ -31,7 +31,7 @@ from types import TracebackType
 from typing import IO
 
 from schemsmith.core import Structure
-from schemsmith.harness.eula import EULA_PROPERTY, require_eula
+from schemsmith.harness.eula import copy_acceptance, require_eula
 from schemsmith.harness.process import free_port, kill_tree, start
 from schemsmith.harness.rcon import RconClient, RconError
 from schemsmith.install import install_structure
@@ -92,6 +92,7 @@ def server_properties(port: int, rcon_port: int, password: str) -> str:
         "simulation-distance": "4",
         "enable-command-block": "false",
         "sync-chunk-writes": "false",
+        "pause-when-empty-seconds": "0",  # 1.21.2+: else the empty server stops ticking after 60 s
         "motd": "schemsmith harness",
     }
     return "".join(f"{k}={v}\n" for k, v in props.items())
@@ -115,11 +116,10 @@ class GameServer:
         return self.config.cache / self.config.mc_version / "server.jar"
 
     def argv(self) -> list[str]:
-        """The server command line (the EULA flag is passed for this run only)."""
+        """The server command line."""
         return [
             *self.config.java,
             f"-Xmx{self.config.memory}",
-            EULA_PROPERTY,
             "-jar",
             str(self.jar),
             "nogui",
@@ -157,6 +157,7 @@ class GameServer:
             encoding="utf-8",
             newline="\n",
         )
+        copy_acceptance(self.workdir, self.config.eula_path)
         self._log = (self.workdir / "server.log").open("wb")
         try:
             self.proc = start(self.argv(), self.workdir, self._log)
@@ -229,7 +230,7 @@ class GameServer:
         x1, z1 = origin[0] + size[0] + 16, origin[2] + size[2] + 16
         self.command(f"forceload add {x0} {z0} {x1} {z1}")
         out = self.command(f"place template {res.resource} {origin[0]} {origin[1]} {origin[2]}")
-        if "placed" not in out.lower():
+        if not any(w in out.lower() for w in ("placed", "loaded template")):  # 26.3: "Loaded"
             raise HarnessError(f"/place template failed: {out}")
         return res.resource
 
