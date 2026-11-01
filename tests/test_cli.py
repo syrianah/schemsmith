@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import subprocess
 import sys
@@ -10,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from schemsmith.cli import main
+from schemsmith.cli import ensure_utf8_output, main
 from schemsmith.core import Region, Structure
 from schemsmith.diagnostics import Diagnostic, Severity
 from schemsmith.formats import save_structure
@@ -361,3 +362,16 @@ def test_materials_guide_render_cli(tmp_path: Path, capsys: pytest.CaptureFixtur
     assert main(["render", v3, "--output", str(png)]) == 2
     assert main(["render", v3, "--layer", "1"]) == 0
     assert "Legend" in capsys.readouterr().out
+
+
+def test_ensure_utf8_output_reconfigures_ansi_streams() -> None:
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="cp1250")
+    ensure_utf8_output(stream)
+    stream.write("hopper ↔ hopper → ok")
+    stream.flush()
+    assert raw.getvalue().decode("utf-8") == "hopper ↔ hopper → ok"
+
+    utf8 = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    ensure_utf8_output(utf8)
+    assert utf8.encoding == "utf-8"

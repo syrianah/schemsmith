@@ -46,6 +46,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
 
+def ensure_utf8_output(*streams: object) -> None:
+    """Make text streams write UTF-8 when they use another encoding.
+
+    Messages contain non-ASCII characters (arrows, ellipses). On Windows a
+    redirected stdout uses the ANSI code page (e.g. cp1250), so printing them
+    raised ``UnicodeEncodeError``. Interactive consoles are already UTF-8 and
+    are left alone.
+    """
+    for stream in streams or (sys.stdout, sys.stderr):
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        reconfigure = getattr(stream, "reconfigure", None)
+        if encoding != "utf8" and reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def run() -> None:
     """Console-script entry point."""
+    ensure_utf8_output()
     sys.exit(main())
