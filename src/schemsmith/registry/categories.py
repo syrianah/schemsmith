@@ -73,7 +73,7 @@ REDSTONE_COMPONENTS = frozenset(
     ]
 )
 _REDSTONE_PATTERNS = re.compile(
-    r"_(button|pressure_plate|door|trapdoor|fence_gate)$|^minecraft:(\w+_)?shelf$"
+    r"_(button|pressure_plate|door|trapdoor|fence_gate)$|^minecraft:(\w+_)?shelf$|lightning_rod$"
 )
 
 CONTAINERS = frozenset(
@@ -106,12 +106,12 @@ CONTAINERS = frozenset(
         "bee_nest",
         "respawn_anchor",
         "end_portal_frame",
-        "item_frame",
     ]
 )
-_CONTAINER_PATTERNS = re.compile(r"shulker_box$|_shelf$")
-"""Comparators read these. Some (cake, composter, cauldron...) are not inventories
-but give comparator output; the category means "comparator-readable"."""
+_CONTAINER_PATTERNS = re.compile(r"shulker_box$|_shelf$|copper_chest$|copper_golem_statue$")
+"""Comparators read these. Some (cake, composter, cauldron, copper golem statues...)
+are not inventories but give comparator output; the category means
+"comparator-readable". Item frames also do, but they are entities, not blocks."""
 
 _TRANSPARENT_PATTERNS = re.compile(
     r"(^minecraft:|_)glass(_pane)?$|_leaves$|^minecraft:(ice|frosted_ice|barrier|light|"
@@ -127,7 +127,7 @@ _NON_FULL_PATTERNS = re.compile(
     r"_coral|_coral_fan|_coral_wall_fan|_head|_skull|_wall_head|_wall_skull|_pot|"
     r"potted_\w+|_bars|_chain|_rod|_amethyst_bud|_vines|_vine|_roots|_plant|_bush|"
     r"_grass|_fern|_button|_shelf|_campfire|_anvil|_cauldron|_lichen|_dripleaf|"
-    r"_sprouts|_cluster|_petals|_eyeblossom|_moss_carpet)$"
+    r"_sprouts|_cluster|_petals|_eyeblossom|_moss_carpet|_chest|_golem_statue)$"
 )
 
 NON_CONDUCTIVE_EXACT = frozenset(
@@ -229,6 +229,44 @@ NON_CONDUCTIVE_EXACT = frozenset(
         "powder_snow",
         "trial_spawner",
         "vault",
+        # bare IDs of the families above (the patterns only match a "_" suffix)
+        "anvil",
+        "campfire",
+        "cauldron",
+        "candle",
+        "candle_cake",
+        "lantern",
+        "torch",
+        "rail",
+        "vine",
+        "fern",
+        "bush",
+        # flowers, small plants and other non-full blocks found in the 26.3 registry
+        "allium",
+        "azure_bluet",
+        "blue_orchid",
+        "cornflower",
+        "dandelion",
+        "golden_dandelion",
+        "lilac",
+        "lily_of_the_valley",
+        "oxeye_daisy",
+        "peony",
+        "poppy",
+        "sunflower",
+        "wither_rose",
+        "red_shrub",
+        "wildflowers",
+        "leaf_litter",
+        "crimson_fungus",
+        "warped_fungus",
+        "mangrove_propagule",
+        "pale_hanging_moss",
+        "pitcher_crop",
+        "torchflower_crop",
+        "resin_clump",
+        "sulfur_spike",
+        "dried_ghast",
     ]
 )
 """Blocks that do not conduct power. ``redstone_lamp`` and ``creaking_heart``
@@ -279,6 +317,8 @@ def is_conductive(state: BlockState) -> bool:
         and not name.endswith("copper_bulb")
     ):
         return False
+    if name == "minecraft:jack_o_lantern":
+        return True  # a full block despite the "_lantern" suffix
     if name == "minecraft:redstone_block":
         return False  # a power source; it powers neighbours but cannot be powered
     return not _NON_FULL_PATTERNS.search(name)

@@ -78,6 +78,56 @@ def test_write_registry_and_history(tmp_path: Path) -> None:
     assert hist.introduced == {"minecraft:stone": "1.20", "minecraft:repeater": "26.3"}
 
 
+def _jar(path: Path, *names: str) -> Path:
+    with zipfile.ZipFile(path, "w") as zf:
+        for name in names:
+            zf.writestr(name, "")
+    return path
+
+
+def test_bundler_detection(tmp_path: Path) -> None:
+    bundler = _jar(tmp_path / "new.jar", "META-INF/versions.list", "version.json")
+    legacy = _jar(tmp_path / "old.jar", "net/minecraft/data/Main.class", "version.json")
+    assert gen.is_bundler_jar(bundler)
+    assert not gen.is_bundler_jar(legacy)
+
+
+def test_datagen_command_never_starts_a_legacy_server() -> None:
+    assert gen.datagen_command(True)[:3] == [
+        "java",
+        "-DbundlerMainClass=net.minecraft.data.Main",
+        "-jar",
+    ]
+    legacy = gen.datagen_command(False)
+    assert "-jar" not in legacy
+    assert legacy == ["java", "-cp", "server.jar", "net.minecraft.data.Main", "--reports"]
+
+
+@pytest.mark.parametrize(
+    ("output", "major"),
+    [
+        ('java version "1.8.0_292"', 8),
+        ('openjdk version "17.0.9" 2023-10-17', 17),
+        ('openjdk version "21" 2023-09-19', 21),
+        ('java version "26" 2026-03-17', 26),
+    ],
+)
+def test_parse_java_major(output: str, major: int) -> None:
+    assert gen.parse_java_major(output) == major
+
+
+def test_parse_java_major_rejects_garbage() -> None:
+    with pytest.raises(ValueError):
+        gen.parse_java_major("command not found")
+
+
+def test_check_java() -> None:
+    gen.check_java(21, 21, "1.21.11")
+    gen.check_java(17, 26, "1.18.2")
+    with pytest.raises(SystemExit, match=r"needs Java 21\+.*Java 17"):
+        gen.check_java(21, 17, "1.21.11")
+
+
 def test_download_uses_cache(tmp_path: Path) -> None:
     target = tmp_path / "f.bin"
     target.write_bytes(b"abc")

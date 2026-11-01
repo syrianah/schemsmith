@@ -51,12 +51,24 @@ def test_unknown_release_names(mini: Registry, history: History) -> None:
     assert validate_structure(Structure(regions=[r], data_version=100), mini, history) == []
 
 
+def test_earliest_history_version_is_only_a_floor(mini: Registry, history: History) -> None:
+    # 1.18.2 is the earliest release in the test history, so "introduced in 1.18.2"
+    # means "1.18.2 or older": a 1.16 file (data version 2586) with stone is fine.
+    assert history.versions[0][0] == "1.18.2"
+    r = Region((2, 1, 1))
+    r.set_block(0, 0, 0, "stone")
+    r.set_block(1, 0, 0, "minecraft:waxed_copper_bulb[lit=false,powered=false]")
+    diags = validate_structure(Structure(regions=[r], data_version=2586), mini, history)
+    assert [d.rule_id for d in diags] == [DATA_VERSION_MISMATCH]
+    assert "minecraft:waxed_copper_bulb" in diags[0].message
+
+
 _HAVE_REAL = bool(available_versions()) and load_history() is not None
 
 
 @pytest.mark.skipif(
     not _HAVE_REAL,
-    reason="generated registries are not committed yet (scripts/gen_registry.py needs network)",
+    reason="no generated registries installed (run scripts/gen_registry.py)",
 )
 @pytest.mark.parametrize("path", FIXTURES, ids=lambda p: p.name)
 def test_mismatch_with_committed_registry(path: Path) -> None:  # pragma: no cover - data

@@ -11,8 +11,13 @@ For each version this script
    (https://piston-meta.mojang.com/mc/game/version_manifest_v2.json),
 2. downloads that version's ``server.jar`` into ``.mc-cache/<version>/``
    (git-ignored; the SHA-1 from the manifest is checked),
-3. runs ``java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports``
-   inside the cache directory (this does **not** start a server and needs no EULA),
+3. runs Mojang's data generator inside the cache directory: for bundler jars
+   (1.18+, they contain ``META-INF/versions.list``)
+   ``java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports``,
+   otherwise ``java -cp server.jar net.minecraft.data.Main --reports``. Neither
+   starts a server or needs the EULA (``-jar`` on a pre-bundler jar *would* start
+   a server, hence the check). The local ``java`` must be at least the
+   ``javaVersion.majorVersion`` the version JSON asks for,
 4. converts ``generated/reports/blocks.json`` into
    ``src/schemsmith/registry/data/<version>.json``; the data version is read from
    ``version.json`` inside the jar.
@@ -27,6 +32,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -95,6 +101,51 @@ def read_version_json(jar: Path) -> tuple[str, int]:
     return str(info.get("name") or info["id"]), int(info["world_version"])
 
 
+def is_bundler_jar(jar: Path) -> bool:
+    """True for the 1.18+ bundler server jars (they list nested jars in ``versions.list``)."""
+    with zipfile.ZipFile(jar) as zf:
+        return "META-INF/versions.list" in zf.namelist()
+
+
+def datagen_command(bundler: bool) -> list[str]:
+    """Command that runs the data generator only (never the server) for this jar kind."""
+    if bundler:
+        return [
+            "java",
+            "-DbundlerMainClass=net.minecraft.data.Main",
+            "-jar",
+            "server.jar",
+            "--reports",
+        ]
+    return ["java", "-cp", "server.jar", "net.minecraft.data.Main", "--reports"]
+
+
+def parse_java_major(version_output: str) -> int:
+    """Major version from ``java -version`` output (``"1.8.0_292"`` -> 8, ``"21.0.2"`` -> 21)."""
+    match = re.search(r'version "(\d+)(?:\.(\d+))?', version_output)
+    if match is None:
+        raise ValueError(f"cannot parse java version from: {version_output!r}")
+    major = int(match.group(1))
+    if major == 1 and match.group(2):
+        return int(match.group(2))
+    return major
+
+
+def local_java_major() -> int:
+    """Major version of the ``java`` on PATH."""
+    proc = subprocess.run(["java", "-version"], capture_output=True, text=True, check=True)
+    return parse_java_major(proc.stderr or proc.stdout)
+
+
+def check_java(required: int, local: int, version: str) -> None:
+    """Fail clearly when the local Java is too old for ``version``'s server jar."""
+    if local < required:
+        raise SystemExit(
+            f"error: Minecraft {version} needs Java {required}+, but `java` on PATH is "
+            f"Java {local}. Install a newer JDK or put it first on PATH."
+        )
+
+
 def compact_blocks(report: dict[str, Any]) -> dict[str, BlockInfo]:
     """``blocks.json`` from the data generator → block → properties and default state."""
     out: dict[str, BlockInfo] = {}
@@ -125,19 +176,15 @@ def generate(version: str, manifest: dict[str, Any]) -> Registry:
     if not exact:
         print(f"warning: {version} is not in the manifest; using latest release {entry['id']}")
     meta = fetch_json(entry["url"])
+    required = int(meta.get("javaVersion", {}).get("majorVersion", 8))
+    check_java(required, local_java_major(), entry["id"])
     server = meta["downloads"]["server"]
     workdir = CACHE / entry["id"]
     jar = workdir / "server.jar"
     download(server["url"], jar, server["sha1"])
     name, data_version = read_version_json(jar)
     subprocess.run(
-        [
-            "java",
-            "-DbundlerMainClass=net.minecraft.data.Main",
-            "-jar",
-            "server.jar",
-            "--reports",
-        ],
+        datagen_command(is_bundler_jar(jar)),
         cwd=workdir,
         check=True,
         stdout=subprocess.DEVNULL,
@@ -182,7 +229,10 @@ def main(argv: list[str] | None = None) -> int:
         hist = build_history(registries)
         path = OUT / HISTORY_FILE
         path.write_text(json.dumps(hist.to_dict(), separators=(",", ":")) + "\n", "utf-8")
-        print(f"history: {len(hist.versions)} versions, {len(hist.introduced)} blocks -> {path}")
+        print(
+            f"history: {len(hist.versions)} versions, {len(hist.introduced)} blocks, "
+            f"{path.stat().st_size} bytes -> {path.relative_to(ROOT)}"
+        )
     return 0
 
 

@@ -65,7 +65,9 @@ def validate_structure(
 
     ``invalid-block-state`` is reported once per distinct state per region, at
     its first position. ``data-version-mismatch`` is reported once per block ID
-    that did not exist yet at the structure's data version.
+    that did not exist yet at the structure's data version. The earliest
+    release in ``history`` is only a floor (blocks "introduced" there may be
+    older), so those blocks are never reported.
     """
     out: list[Diagnostic] = []
     multi = len(structure.regions) > 1
@@ -112,9 +114,10 @@ def _version_mismatches(
 ) -> list[Diagnostic]:
     out = []
     dv = structure.data_version
+    floor = min(history.versions, key=lambda v: v[1])[0] if history.versions else None
     for name in sorted(first_seen):
         release = history.introduced.get(name)
-        if release is None:
+        if release is None or release == floor:
             continue
         needed = history.data_version_of(release)
         if needed is None or needed <= dv:
