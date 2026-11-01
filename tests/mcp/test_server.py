@@ -135,3 +135,32 @@ def test_redstone_simulate_tool(root: Path) -> None:
         tools.redstone_simulate(
             "timer_v3_fixed.litematic", script={"actions": [{"at": 1, "press": [0, 0, 0]}]}
         )
+
+
+def test_build_tools(root: Path) -> None:
+    tools = SchemsmithTools(root)
+    created = tools.schematic_create("demo.litematic", "26.3")
+    assert created["data_version"] > 4000
+    with pytest.raises(FileExistsError):
+        tools.schematic_create("demo.litematic")
+    with pytest.raises(ValueError):
+        tools.schematic_create("bad.litematic", size=[0, 1, 1])
+    listing = tools.build_list_modules()
+    assert any(m["name"] == "hopper_clock" for m in listing["modules"])
+    detail = tools.build_list_modules("hopper_clock")
+    assert detail["params"][0]["name"] == "seconds" and "out" in detail["ports"]
+    out = tools.build_place_module("demo.litematic", "hopper_clock", {"seconds": 150}, [0, 1, 0])
+    assert out["output"] == "demo.placed.litematic" and out["ports"]["out"] == [6, 2, 5]
+    assert tools.redstone_lint("demo.placed.litematic")["total"] == 0
+    with pytest.raises(FileExistsError):
+        tools.build_place_module("demo.litematic", "hopper_clock")
+    again = tools.build_place_module("demo.litematic", "small_house", rotate=90, overwrite=True)
+    assert again["output"] == "demo.litematic" and again["ports"] == {}
+    with pytest.raises(ValueError):
+        tools.build_place_module("demo.litematic", "small_house", rotate=45)
+    with pytest.raises(ValueError):
+        tools.build_place_module("demo.litematic", "small_house", at=[1, 2])
+    with pytest.raises(KeyError):
+        tools.build_place_module("demo.litematic", "nope")
+    out2 = tools.build_place_module("demo.litematic", "counter", output="sub.schem")
+    assert out2["output"] == "sub.schem"

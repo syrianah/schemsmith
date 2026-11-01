@@ -37,6 +37,9 @@ TOOL_NAMES = (
     "redstone_lint",
     "redstone_trace",
     "redstone_simulate",
+    "schematic_create",
+    "build_list_modules",
+    "build_place_module",
 )
 
 _EXPECTED = (
@@ -156,6 +159,37 @@ def create_server(root: Path) -> MCPServer[Any]:
         Returns events (bell, disc_start, bulb_on, ...), a timeline of watched blocks and
         expectation results; truncated to fixed limits."""
         return _wrap(tools.redstone_simulate)(path, script, script_path, ticks)
+
+    @app.tool()
+    def schematic_create(
+        path: str, mc_version: str = "26.3", size: list[int] | None = None, overwrite: bool = False
+    ) -> dict[str, Any]:
+        """Create an empty schematic for a Minecraft version (sets the data version)."""
+        return _wrap(tools.schematic_create)(path, mc_version, size, overwrite)
+
+    @app.tool()
+    def build_list_modules(name: str | None = None) -> dict[str, Any]:
+        """List the module library (redstone circuits, farms, buildings), or describe one
+        module: parameters, defaults, ranges and ports."""
+        return _wrap(tools.build_list_modules)(name)
+
+    @app.tool()
+    def build_place_module(
+        path: str,
+        module: str,
+        params: dict[str, Any] | None = None,
+        at: list[int] | None = None,
+        rotate: int = 0,
+        mirror: str | None = None,
+        output: str | None = None,
+        overwrite: bool = False,
+    ) -> dict[str, Any]:
+        """Place a module at [x,y,z] (rotate 0/90/180/270 clockwise, mirror 'x'/'z'). Writes
+        output (default <name>.placed.<ext>); writing into the input needs overwrite=true.
+        Every module validates, lints clean and (for redstone) passes a simulator scenario."""
+        return _wrap(tools.build_place_module)(
+            path, module, params, at, rotate, mirror, output, overwrite
+        )
 
     return app
 
