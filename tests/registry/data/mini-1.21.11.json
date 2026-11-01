@@ -1,0 +1,300 @@
+{
+ "format": 1,
+ "mc_version": "mini-1.21.11",
+ "data_version": 4671,
+ "blocks": {
+  "minecraft:air": {
+   "properties": {},
+   "default": {}
+  },
+  "minecraft:bell": {
+   "properties": {
+    "attachment": [
+     "floor",
+     "ceiling",
+     "single_wall",
+     "double_wall"
+    ],
+    "facing": [
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "powered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "attachment": "floor",
+    "facing": "north",
+    "powered": "false"
+   }
+  },
+  "minecraft:comparator": {
+   "properties": {
+    "facing": [
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "mode": [
+     "compare",
+     "subtract"
+    ],
+    "powered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "facing": "north",
+    "mode": "compare",
+    "powered": "false"
+   }
+  },
+  "minecraft:dispenser": {
+   "properties": {
+    "facing": [
+     "down",
+     "up",
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "triggered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "facing": "north",
+    "triggered": "false"
+   }
+  },
+  "minecraft:dropper": {
+   "properties": {
+    "facing": [
+     "down",
+     "up",
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "triggered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "facing": "north",
+    "triggered": "false"
+   }
+  },
+  "minecraft:glass": {
+   "properties": {},
+   "default": {}
+  },
+  "minecraft:hopper": {
+   "properties": {
+    "enabled": [
+     "true",
+     "false"
+    ],
+    "facing": [
+     "down",
+     "north",
+     "south",
+     "west",
+     "east"
+    ]
+   },
+   "default": {
+    "enabled": "true",
+    "facing": "down"
+   }
+  },
+  "minecraft:jukebox": {
+   "properties": {
+    "has_record": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "has_record": "false"
+   }
+  },
+  "minecraft:polished_andesite": {
+   "properties": {},
+   "default": {}
+  },
+  "minecraft:redstone_lamp": {
+   "properties": {
+    "lit": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "lit": "false"
+   }
+  },
+  "minecraft:redstone_torch": {
+   "properties": {
+    "lit": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "lit": "true"
+   }
+  },
+  "minecraft:redstone_wall_torch": {
+   "properties": {
+    "facing": [
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "lit": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "facing": "north",
+    "lit": "true"
+   }
+  },
+  "minecraft:redstone_wire": {
+   "properties": {
+    "east": [
+     "up",
+     "side",
+     "none"
+    ],
+    "north": [
+     "up",
+     "side",
+     "none"
+    ],
+    "power": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15"
+    ],
+    "south": [
+     "up",
+     "side",
+     "none"
+    ],
+    "west": [
+     "up",
+     "side",
+     "none"
+    ]
+   },
+   "default": {
+    "east": "none",
+    "north": "none",
+    "power": "0",
+    "south": "none",
+    "west": "none"
+   }
+  },
+  "minecraft:repeater": {
+   "properties": {
+    "delay": [
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "facing": [
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "locked": [
+     "true",
+     "false"
+    ],
+    "powered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "delay": "1",
+    "facing": "north",
+    "locked": "false",
+    "powered": "false"
+   }
+  },
+  "minecraft:stone": {
+   "properties": {},
+   "default": {}
+  },
+  "minecraft:stone_button": {
+   "properties": {
+    "face": [
+     "floor",
+     "wall",
+     "ceiling"
+    ],
+    "facing": [
+     "north",
+     "south",
+     "west",
+     "east"
+    ],
+    "powered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "face": "wall",
+    "facing": "north",
+    "powered": "false"
+   }
+  },
+  "minecraft:waxed_copper_bulb": {
+   "properties": {
+    "lit": [
+     "true",
+     "false"
+    ],
+    "powered": [
+     "true",
+     "false"
+    ]
+   },
+   "default": {
+    "lit": "false",
+    "powered": "false"
+   }
+  }
+ }
+}

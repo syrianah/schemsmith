@@ -1,6 +1,6 @@
 # Phase 03: Block registry and validation
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-03-registry`
 
 ## Goal

@@ -134,3 +134,41 @@ def test_convert_reports_merge(tmp_path: Path, capsys: pytest.CaptureFixture[str
     save_structure(Structure(regions=[a, b]), src)
     assert main(["convert", str(src), str(tmp_path / "m.nbt")]) == 0
     assert "note: merged 2 regions" in capsys.readouterr().out
+
+
+REG_DATA = ROOT / "tests" / "registry" / "data"
+
+
+def test_validate_reports_mismatch(capsys: pytest.CaptureFixture[str]) -> None:
+    args = [
+        "validate",
+        str(FIX / "timer_v3_fixed.litematic"),
+        "--registry",
+        str(REG_DATA / "mini-1.21.11.json"),
+        "--history",
+        str(REG_DATA),
+    ]
+    assert main(args) == 1
+    out = capsys.readouterr().out
+    assert "data-version-mismatch" in out
+    assert "minecraft:waxed_copper_bulb" in out
+    assert main([*args, "--format", "json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert [d["rule_id"] for d in data["diagnostics"]] == ["data-version-mismatch"]
+    assert set(data["diagnostics"][0]) >= {"rule_id", "severity", "pos", "message", "suggestion"}
+
+
+def test_validate_clean_exit_zero(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    r = Region((1, 1, 1))
+    r.set_block(0, 0, 0, "stone")
+    f = tmp_path / "ok.litematic"
+    save_structure(Structure(regions=[r], data_version=4671), f)
+    reg = str(REG_DATA / "mini-1.21.11.json")
+    assert main(["validate", str(f), "--registry", reg, "--history", str(REG_DATA)]) == 0
+    assert main(["validate", str(f), "--registry", reg, "--history", str(tmp_path)]) == 0
+    assert "not checked" in capsys.readouterr().out
+
+
+def test_validate_without_registry(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["validate", str(FIX / "timer_v3_fixed.litematic"), "--mc-version", "0.0"]) == 2
+    assert "gen_registry" in capsys.readouterr().err
