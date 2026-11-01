@@ -1,6 +1,6 @@
 # Phase 09: Previews, material lists and build guides
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-09-previews`
 
 ## Goal

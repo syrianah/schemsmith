@@ -12,11 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from schemsmith.build import new_structure, place_region
-from schemsmith.cli.formats_cmds import LEGEND_CHARS, summary
+from schemsmith.cli.formats_cmds import summary
 from schemsmith.core import Region, Structure
 from schemsmith.core.edits import EditError, apply_plan, plan_size
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.formats import format_for_path, load_structure, save_structure
+from schemsmith.guide import build_guide, material_list, to_markdown
 from schemsmith.library import MODULES, get_module
 from schemsmith.mcp import limits as L
 from schemsmith.mcp.paths import relative, resolve_in_root
@@ -30,6 +31,8 @@ from schemsmith.registry import (
     select_registry,
     validate_structure,
 )
+from schemsmith.render import RenderTooLarge, render_png
+from schemsmith.render.ascii import LEGEND_CHARS
 
 
 def bounded(result: dict[str, Any]) -> dict[str, Any]:
@@ -450,3 +453,45 @@ class SchemsmithTools:
                 "ports": ports,
             }
         )
+
+    def _script(self, script_path: str | None) -> Any:
+        if script_path is None:
+            return None
+        try:
+            return load_script(resolve_in_root(self.root, script_path))
+        except ScriptError as exc:
+            raise ValueError(f"invalid script: {exc}") from exc
+
+    def render_preview(self, path: str, region: str | None = None) -> bytes | dict[str, Any]:
+        """Isometric PNG bytes, or ``response_limited`` when too large."""
+        _, s = self._load(path)
+        try:
+            data = render_png(s, region, L.MAX_PNG_SIDE)
+        except RenderTooLarge as exc:
+            return L.limited("MAX_PNG_SIDE", 0, L.MAX_PNG_SIDE, f"{exc}; use schematic_slice")
+        if len(data) > L.MAX_PNG_BYTES:
+            return L.limited("MAX_PNG_BYTES", len(data), L.MAX_PNG_BYTES, "use schematic_slice")
+        return data
+
+    def materials_list(self, path: str, script_path: str | None = None) -> dict[str, Any]:
+        """Items, stacks and shulker boxes; container contents listed separately."""
+        _, s = self._load(path)
+        return bounded(material_list(s, self._script(script_path)).to_dict())
+
+    def build_guide(
+        self,
+        path: str,
+        script_path: str | None = None,
+        y_min: int | None = None,
+        y_max: int | None = None,
+    ) -> dict[str, Any]:
+        """Markdown build guide; restrict to layers y_min..y_max when it is long."""
+        _, s = self._load(path)
+        g = build_guide(s, self._script(script_path))
+        lo = 0 if y_min is None else y_min
+        hi = len(g.layers) - 1 if y_max is None else y_max
+        g.layers = [layer for layer in g.layers if lo <= layer.y <= hi]
+        out = bounded({"layers": [lo, hi], "total_layers": g.size[1], "markdown": to_markdown(g)})
+        if out.get("response_limited"):
+            out["hint"] = "request fewer layers with y_min/y_max"
+        return out

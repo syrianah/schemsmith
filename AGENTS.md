@@ -42,6 +42,7 @@ uv run schemsmith edit FILE --plan plan.json [--apply]  # from phase 05
 uv run schemsmith-mcp --root DIR # from phase 05
 uv run schemsmith simulate FILE --script S.yaml       # from phase 07
 uv run schemsmith new F / place F MODULE --at X Y Z   # from phase 08 (modules: docs/modules.md)
+uv run schemsmith materials F / guide F / render F    # from phase 09
 ```
 
 ## Where to change things

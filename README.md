@@ -2,7 +2,7 @@
 
 A schematic smith for AI agents: design, lint, simulate and fix Minecraft schematics (buildings, farms and redstone machines) through MCP or the command line, ready to build in-game with [Litematica](https://github.com/maruohon/litematica).
 
-> **Status: early development.** Reading/writing schematics, validation, the redstone linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)) and the MCP server work; see [docs/plans/index.md](docs/plans/index.md) for progress.
+> **Status: early development.** Reading/writing schematics, validation, the redstone linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)), previews, material lists, build guides and the MCP server work; see [docs/plans/index.md](docs/plans/index.md) for progress.
 
 ## Why
 
@@ -55,6 +55,7 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 | `redstone_simulate` | Run an action script tick by tick (events, timeline, expectations) |
 | `schematic_create` | New empty schematic for a Minecraft version |
 | `build_list_modules` / `build_place_module` | Module library: list, describe, place (rotated/mirrored) |
+| `render_preview` / `materials_list` / `build_guide` | Isometric PNG (no textures), material list, layer-by-layer guide |
 
 ### Edit plans
 

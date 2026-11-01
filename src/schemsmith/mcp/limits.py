@@ -48,3 +48,7 @@ MAX_SIM_EVENTS = 100
 """Events returned by ``redstone_simulate`` (the total is always reported)."""
 MAX_SIM_TIMELINE = 100
 """Timeline entries returned by ``redstone_simulate``."""
+MAX_PNG_SIDE = 768
+"""Longest side of a PNG returned by ``render_preview`` (pixels)."""
+MAX_PNG_BYTES = 400_000
+"""Largest PNG ``render_preview`` returns; bigger renders return ``response_limited``."""

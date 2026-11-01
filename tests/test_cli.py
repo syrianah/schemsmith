@@ -333,3 +333,31 @@ def test_new_place_modules(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -
     assert "--cube-item" in capsys.readouterr().out
     with pytest.raises(SystemExit):
         main(["info", str(demo), "--unknown-flag"])
+
+
+def test_materials_guide_render_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    v3 = str(FIX / "timer_v3_fixed.litematic")
+    script = str(FIX / "timer_start.yaml")
+    assert main(["materials", v3]) == 0
+    out = capsys.readouterr().out
+    assert "minecraft:stone" in out and "2 stacks + 37" in out and "209 items" in out
+    assert main(["materials", v3, "--format", "json", "--script", script]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["total_items"] == 209 and data["container_contents"][0]["items"][0]["count"] == 188
+    assert main(["materials", v3, "--script", script]) == 0
+    assert (
+        "put into minecraft:hopper at (4, 1, 7): 188 x minecraft:cobblestone (script)"
+        in capsys.readouterr().out
+    )
+    assert main(["guide", v3, "--format", "md"]) == 0
+    assert "comparator in **subtract** mode" in capsys.readouterr().out
+    out_html = tmp_path / "g.html"
+    assert main(["guide", v3, "--format", "html", "--script", script, "--out", str(out_html)]) == 0
+    assert out_html.read_text().startswith("<!doctype html>")
+    assert main(["guide", v3, "--out", str(out_html)]) == 2  # exists
+    png = tmp_path / "t.png"
+    assert main(["render", v3, "--output", str(png)]) == 0
+    assert png.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+    assert main(["render", v3, "--output", str(png)]) == 2
+    assert main(["render", v3, "--layer", "1"]) == 0
+    assert "Legend" in capsys.readouterr().out

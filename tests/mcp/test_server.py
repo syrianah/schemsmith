@@ -13,6 +13,8 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.server.mcpserver.exceptions import ToolError
 
+from schemsmith.core import Region, Structure
+from schemsmith.formats import save_structure
 from schemsmith.mcp import limits as L
 from schemsmith.mcp.server import TOOL_NAMES, create_server, main
 from schemsmith.mcp.tools import SchemsmithTools
@@ -164,3 +166,43 @@ def test_build_tools(root: Path) -> None:
         tools.build_place_module("demo.litematic", "nope")
     out2 = tools.build_place_module("demo.litematic", "counter", output="sub.schem")
     assert out2["output"] == "sub.schem"
+
+
+def test_preview_tools(root: Path) -> None:
+    tools = SchemsmithTools(root)
+    png = tools.render_preview("timer_v3_fixed.litematic")
+    assert isinstance(png, bytes) and png[:4] == b"\x89PNG"
+    fixture = Path(__file__).resolve().parents[2] / "fixtures" / "timer_start.yaml"
+    (root / "start.yaml").write_text(fixture.read_text())
+    mats = tools.materials_list("timer_v3_fixed.litematic", "start.yaml")
+    assert mats["total_items"] == 209 and mats["container_contents"]
+    guide = tools.build_guide("timer_v3_fixed.litematic", "start.yaml", y_min=1, y_max=1)
+    assert "Layer y=1" in guide["markdown"] and "Layer y=2" not in guide["markdown"]
+    assert guide["total_layers"] == 3
+    (root / "bad.yaml").write_text("actions: [{at: 1}]")
+    with pytest.raises(ValueError):
+        tools.materials_list("timer_v3_fixed.litematic", "bad.yaml")
+    # oversized renders are limited, never returned whole
+    old = L.MAX_PNG_BYTES
+    try:
+        L.MAX_PNG_BYTES = 10
+        limited = tools.render_preview("timer_v3_fixed.litematic")
+        assert isinstance(limited, dict) and limited["response_limited"]
+    finally:
+        L.MAX_PNG_BYTES = old
+    save_structure(
+        Structure(regions=[Region((800, 2, 800))], data_version=4671), root / "huge.litematic"
+    )
+    huge = tools.render_preview("huge.litematic")
+    assert isinstance(huge, dict) and huge["response_limited"]
+
+
+def test_render_preview_returns_image_over_mcp(root: Path) -> None:
+    app = create_server(root)
+
+    async def run() -> Any:
+        return await app.call_tool("render_preview", {"path": "timer_v3_fixed.litematic"})
+
+    out = anyio.run(run)
+    text = repr(out)
+    assert "image/png" in text
