@@ -12,7 +12,12 @@ A history file (``registry/data/history.json``) records for each block the
 first release (among the versions the script was run for) that has it::
 
     {"format": 1, "versions": [["1.13", 1519], ...],
-     "introduced": {"minecraft:copper_bulb": "1.21", ...}}
+     "introduced": {"minecraft:copper_bulb": "1.20.4", ...}}
+
+"Introduced" is the first report that lists the block, including blocks behind an
+experimental feature flag (the copper bulb is in 1.20.4 behind ``update_1_21``).
+:mod:`schemsmith.registry.experimental` maps those to the release where normal
+worlds get them (issue #11).
 """
 
 from __future__ import annotations

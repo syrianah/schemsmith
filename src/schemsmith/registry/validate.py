@@ -6,6 +6,7 @@ import difflib
 
 from schemsmith.core import BlockState, Structure
 from schemsmith.diagnostics import Diagnostic, Severity
+from schemsmith.registry.experimental import default_release
 from schemsmith.registry.model import History, Registry
 
 INVALID_BLOCK_STATE = "invalid-block-state"
@@ -123,14 +124,25 @@ def _version_mismatches(
         if needed is None or needed <= dv:
             continue
         region, pos = first_seen[name]
+        need = f"Minecraft {release}+ (data version {needed})"
+        target = needed
+        flagged = default_release(name)
+        normal_dv = history.data_version_of(flagged[0]) if flagged else None
+        if flagged and normal_dv is not None and normal_dv > needed:
+            # listed earlier only behind an experiment: suggest the normal-world release
+            need = (
+                f"Minecraft {flagged[0]}+ (data version {normal_dv}); from {release} it exists "
+                f"only with the {flagged[1]} experiment"
+            )
+            target = normal_dv
         out.append(
             Diagnostic(
                 DATA_VERSION_MISMATCH,
                 Severity.ERROR,
                 pos,
-                f"{name} needs Minecraft {release}+ (data version {needed}), but the file "
-                f"declares data version {dv} ({_release_for(dv, history)})",
-                f"set the data version to {needed} or later, or replace {name}",
+                f"{name} needs {need}, but the file declares data version {dv} "
+                f"({_release_for(dv, history)})",
+                f"set the data version to {target} or later, or replace {name}",
                 region if multi else None,
             )
         )
