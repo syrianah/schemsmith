@@ -36,3 +36,12 @@ def resolve_in_root(root: Path, user_path: str, *, must_exist: bool = True) -> P
 def relative(root: Path, path: Path) -> str:
     """Path as shown to the client (relative to root)."""
     return str(path.relative_to(root.resolve()))
+
+
+def check_inside_root(root: Path, path: Path) -> None:
+    """Raise :class:`PathOutsideRoot` when ``path`` (which may not exist yet) resolves
+    outside ``root``; existing components, symlinks included, are followed."""
+    base = root.resolve(strict=True)
+    resolved = path.resolve()
+    if resolved != base and base not in resolved.parents:
+        raise PathOutsideRoot(f"{path.name}: outside the server root")
