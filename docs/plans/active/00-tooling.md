@@ -1,6 +1,6 @@
 # Phase 00: Project tooling
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-00-tooling`
 
 ## Goal
