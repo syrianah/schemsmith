@@ -36,7 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     handler: Handler = args.handler
     try:
         return handler(args)
-    except (OSError, ValueError, LookupError) as exc:
+    except (OSError, ValueError, LookupError) as exc:  # includes JSON and edit-plan errors
         print(f"schemsmith {args.command}: error: {exc}", file=sys.stderr)
         return 2
 

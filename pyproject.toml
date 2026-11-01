@@ -17,10 +17,13 @@ classifiers = [
     "Topic :: Games/Entertainment",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "mcp>=2.3,<3",
+]
 
 [project.scripts]
 schemsmith = "schemsmith.cli:run"
+schemsmith-mcp = "schemsmith.mcp.server:main"
 
 [project.urls]
 Repository = "https://github.com/syrianah/schemsmith"

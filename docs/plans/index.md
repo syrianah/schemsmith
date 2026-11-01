@@ -26,7 +26,6 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [05-mcp-cli](active/05-mcp-cli.md): MCP server with bounded tools, edit plans. NOT STARTED · depends on: 02, 03, 04 · PR: — · blockers: —
 - [06-harness](active/06-harness.md): in-game verification on a headless Fabric server. BLOCKED (OQ-1) · depends on: 02, 05 · PR: — · blockers: OQ-1
 - [07-simulator](active/07-simulator.md): tick simulator cross-checked against the harness. NOT STARTED · depends on: 04, 05 (06 as oracle) · PR: — · blockers: —
 - [08-build-api](active/08-build-api.md): geometry, primitives, module library. NOT STARTED · depends on: 04, 05, 07 · PR: — · blockers: —
@@ -40,6 +39,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 - [02-formats](completed/02-formats.md): Structure model, `.litematic` v6/v7, Sponge `.schem`, vanilla `.nbt`, `info`/`dump`/`convert`. DONE (PR #8, 2026-11-01) · depends on: 01 · PR: #8 · blockers: —
 - [03-registry](completed/03-registry.md): per-version block registry, `validate`. DONE (PR #10, 2026-11-01) · depends on: 02 · PR: #10 · blockers: —
 - [04-redstone-lint](completed/04-redstone-lint.md): power graph, lint rules, `lint`/`trace`; catches both timer bugs. DONE (PR #13, 2026-11-01) · depends on: 02, 03 · PR: #13 · blockers: —
+- [05-mcp-cli](completed/05-mcp-cli.md): MCP server with bounded tools, edit plans. DONE (PR #14, 2026-11-01) · depends on: 02, 03, 04 · PR: #14 · blockers: —
 
 ## Do not build
 
