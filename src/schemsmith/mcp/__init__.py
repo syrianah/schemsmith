@@ -1,1 +1,1 @@
-"""MCP server exposing schemsmith tools to AI clients."""
+"""MCP server exposing schemsmith tools to AI clients (``schemsmith-mcp``)."""

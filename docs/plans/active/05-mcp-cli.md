@@ -1,6 +1,6 @@
 # Phase 05: MCP server
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-05-mcp-cli`
 
 ## Goal

@@ -213,3 +213,45 @@ def test_trace(capsys: pytest.CaptureFixture[str]) -> None:
     data = json.loads(capsys.readouterr().out)
     assert data["pos"] == [12, 1, 1]
     assert main(["trace", v1, "99", "1", "1"]) == 2
+
+
+def test_edit_preview_and_apply(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    src = tmp_path / "t.litematic"
+    src.write_bytes((FIX / "timer_v2_locked_repeater.litematic").read_bytes())
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "edits": [
+                    {
+                        "op": "set",
+                        "pos": [10, 1, 9],
+                        "state": "minecraft:comparator[facing=west,mode=subtract,powered=false]",
+                    },
+                    {"op": "container", "pos": [4, 1, 7], "items": [{"id": "stone", "count": 64}]},
+                    {"op": "set", "pos": [12, 2, 1], "state": "air"},
+                ]
+            }
+        )
+    )
+    before = src.read_bytes()
+    assert main(["edit", str(src), "--plan", str(plan)]) == 0
+    out = capsys.readouterr().out
+    assert "preview only" in out and "2 block(s) changed" in out
+    assert src.read_bytes() == before
+    assert main(["edit", str(src), "--plan", str(plan), "--apply"]) == 0
+    edited = tmp_path / "t.edited.litematic"
+    assert "wrote" in capsys.readouterr().out
+    assert main(["lint", str(edited), "--rule", "locked-repeater-may-freeze-on"]) == 0
+    assert "0 finding(s)" in capsys.readouterr().out
+    assert main(["edit", str(src), "--plan", str(plan), "--apply"]) == 2  # exists
+    assert main(["edit", str(src), "--plan", str(plan), "--apply", "--overwrite"]) == 0
+    big = tmp_path / "big.json"
+    big.write_text(
+        json.dumps([{"op": "fill", "from": [0, 1, 0], "to": [14, 1, 10], "state": "glass"}])
+    )
+    assert main(["edit", str(src), "--plan", str(big)]) == 0
+    assert "more" in capsys.readouterr().out
+    bad = tmp_path / "bad.json"
+    bad.write_text('[{"op": "nope"}]')
+    assert main(["edit", str(src), "--plan", str(bad)]) == 2

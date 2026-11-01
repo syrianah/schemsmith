@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
+from pathlib import Path
 from typing import Any
 
 from schemsmith.core import Region, Structure
+from schemsmith.core.edits import apply_plan
 from schemsmith.formats import FORMATS, load_structure, save_structure
 
 TOP_MATERIALS = 10
+PREVIEW_LINES = 50
+"""Changes printed by ``edit``."""
 """How many materials ``info`` lists."""
 
 LEGEND_CHARS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$%&*+=?"
@@ -34,6 +39,18 @@ def register(sub: Any) -> None:
     p.add_argument("--to", choices=FORMATS, help="target format (default: from extension)")
     p.add_argument("--overwrite", action="store_true", help="replace OUTPUT if it exists")
     p.set_defaults(handler=cmd_convert)
+
+    p = sub.add_parser(
+        "edit",
+        help="preview or apply an edit plan (JSON); applying writes a new file",
+        description="Plan format: see schemsmith.core.edits or the README.",
+    )
+    p.add_argument("file")
+    p.add_argument("--plan", required=True, help="JSON file with the edit plan ('-' = stdin)")
+    p.add_argument("--apply", action="store_true", help="write the result (default: preview)")
+    p.add_argument("--output", help="output file (default: <name>.edited<ext>)")
+    p.add_argument("--overwrite", action="store_true", help="allow replacing an existing file")
+    p.set_defaults(handler=cmd_edit)
 
 
 def summary(s: Structure) -> dict[str, Any]:
@@ -149,4 +166,32 @@ def cmd_convert(args: argparse.Namespace) -> int:
     for item in report.dropped:
         print(f"dropped: {item}")
     print(f"wrote {args.output} ({s.block_count()} blocks)")
+    return 0
+
+
+def cmd_edit(args: argparse.Namespace) -> int:
+    """Preview or apply an edit plan."""
+    text = sys.stdin.read() if args.plan == "-" else Path(args.plan).read_text("utf-8")
+    plan = json.loads(text)
+    src = Path(args.file)
+    s = load_structure(src)
+    result = apply_plan(s, plan)
+    for c in result.changes[:PREVIEW_LINES]:
+        x, y, z = c.pos
+        print(f"({x},{y},{z}) {c.before} -> {c.after}")
+    if len(result.changes) > PREVIEW_LINES:
+        print(f"... {len(result.changes) - PREVIEW_LINES} more")
+    for p in result.containers:
+        print(f"container contents set at {p}")
+    for p in result.removed_block_entities:
+        print(f"block entity removed at {p} (block replaced)")
+    print(f"{len(result.changes)} block(s) changed")
+    if not args.apply:
+        print("preview only; pass --apply to write a new file")
+        return 0
+    target = Path(args.output) if args.output else src.with_name(f"{src.stem}.edited{src.suffix}")
+    report = save_structure(s, target, overwrite=args.overwrite)
+    for item in report.dropped:
+        print(f"dropped: {item}")
+    print(f"wrote {target}")
     return 0
