@@ -20,6 +20,7 @@ from schemsmith.mcp import limits as L
 from schemsmith.mcp.paths import relative, resolve_in_root
 from schemsmith.redstone.graph import ALL, PowerGraph, step
 from schemsmith.redstone.lint import RULES, SEVERITY_ORDER, lint_structure
+from schemsmith.redstone.sim import ScriptError, load_script, parse_script, simulate
 from schemsmith.registry import (
     CATEGORIES,
     in_category,
@@ -310,3 +311,32 @@ class SchemsmithTools:
             }
         )
         return bounded(out)
+
+    def redstone_simulate(
+        self,
+        path: str,
+        script: dict[str, Any] | None = None,
+        script_path: str | None = None,
+        ticks: int | None = None,
+    ) -> dict[str, Any]:
+        """Run an action script (inline object or a YAML/JSON file under the root)."""
+        _, s = self._load(path)
+        if (script is None) == (script_path is None):
+            raise ValueError("pass exactly one of script or script_path")
+        try:
+            sc = (
+                parse_script(script)
+                if script is not None
+                else load_script(resolve_in_root(self.root, script_path or ""))
+            )
+        except ScriptError as exc:
+            raise ValueError(f"invalid script: {exc}") from exc
+        if ticks is not None:
+            sc.ticks = ticks
+        if sc.ticks > L.MAX_SIM_TICKS:
+            return L.limited("MAX_SIM_TICKS", sc.ticks, L.MAX_SIM_TICKS, "simulate fewer ticks")
+        try:
+            result = simulate(s, sc)
+        except ScriptError as exc:
+            raise ValueError(f"invalid script: {exc}") from exc
+        return bounded(result.to_dict(L.MAX_SIM_EVENTS, L.MAX_SIM_TIMELINE))

@@ -1,6 +1,6 @@
 # Phase 07: Tick simulator
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-07-simulator`
 
 ## Goal

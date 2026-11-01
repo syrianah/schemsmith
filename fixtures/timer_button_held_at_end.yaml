@@ -1,0 +1,17 @@
+# Timer, one game; the cube button is held over the end of the game, then released.
+name: timer, cube button held when the game ends
+ticks: 3600
+setup:
+  containers:
+    - pos: [4, 1, 7]
+      items: [{id: minecraft:cobblestone, count: 188}]
+actions:
+  - {at: 20, press: [9, 2, 3]}          # START
+  - {at: 2950, hold: [9, 2, 9], for: 200}  # cube button held from before to after the end
+watch:
+  - {pos: [10, 1, 9], label: cube gate}
+  - {pos: [12, 1, 9], label: dispenser}
+  - {pos: [12, 1, 7], label: bell}
+expect:
+  - {events: bell, count: 1}
+  - {at: 3500, pos: [10, 1, 9], powered: false}   # gate closed after the game

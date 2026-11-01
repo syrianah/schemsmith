@@ -1,0 +1,20 @@
+# Timer, three games in a row (music should play in every game).
+name: timer, three games
+ticks: 10000
+setup:
+  containers:
+    - pos: [4, 1, 7]
+      items: [{id: minecraft:cobblestone, count: 188}]
+    - pos: [12, 1, 1]
+      items: [{id: minecraft:music_disc_pigstep, count: 1}]
+actions:
+  - {at: 20, press: [9, 2, 3]}
+  - {at: 3400, press: [9, 2, 3]}
+  - {at: 6800, press: [9, 2, 3]}
+watch:
+  - {pos: [13, 2, 1], label: jukebox}
+  - {pos: [12, 2, 1], label: disc hopper}
+  - {pos: [12, 1, 1], label: dropper}
+expect:
+  - {events: bell, count: 3}
+  - {events: disc_start, count: 3}

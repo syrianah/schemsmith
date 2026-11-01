@@ -40,3 +40,11 @@ def limited(limit: str, value: int, maximum: int, hint: str) -> dict[str, Any]:
         "maximum": maximum,
         "hint": hint,
     }
+
+
+MAX_SIM_TICKS = 72_000
+"""Longest simulation (game ticks, = 1 hour) one call may request."""
+MAX_SIM_EVENTS = 100
+"""Events returned by ``redstone_simulate`` (the total is always reported)."""
+MAX_SIM_TIMELINE = 100
+"""Timeline entries returned by ``redstone_simulate``."""
