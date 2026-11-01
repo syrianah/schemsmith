@@ -27,7 +27,6 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 ## Active
 
 - [06-harness](active/06-harness.md): in-game verification on a headless Fabric server. BLOCKED (OQ-1) · depends on: 02, 05 · PR: — · blockers: OQ-1
-- [08-build-api](active/08-build-api.md): geometry, primitives, module library. NOT STARTED · depends on: 04, 05, 07 · PR: — · blockers: —
 - [09-previews](active/09-previews.md): renders, material lists, build guides. NOT STARTED · depends on: 02, 04, 05 · PR: — · blockers: — (uses default of OQ-3)
 - [10-release](active/10-release.md): packaging, docs site, 1.0. BLOCKED (OQ-5) · depends on: 05, 08, 09 · PR: — · blockers: OQ-5
 
@@ -40,6 +39,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 - [04-redstone-lint](completed/04-redstone-lint.md): power graph, lint rules, `lint`/`trace`; catches both timer bugs. DONE (PR #13, 2026-11-01) · depends on: 02, 03 · PR: #13 · blockers: —
 - [05-mcp-cli](completed/05-mcp-cli.md): MCP server with bounded tools, edit plans. DONE (PR #14, 2026-11-01) · depends on: 02, 03, 04 · PR: #14 · blockers: —
 - [07-simulator](completed/07-simulator.md): tick simulator cross-checked against the harness. DONE (PR #15, 2026-11-01) · depends on: 04, 05 (06 as oracle) · PR: #15 · blockers: —
+- [08-build-api](completed/08-build-api.md): geometry, primitives, module library. DONE (PR #18, 2026-11-01) · depends on: 04, 05, 07 · PR: #18 · blockers: —
 
 ## Do not build
 

@@ -1,6 +1,6 @@
 # Phase 08: Build API and module library
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #18, 2026-11-01)
 **Branch:** `phase-08-build-api`
 
 ## Goal
@@ -42,11 +42,11 @@ An AI agent can build new schematics from high-level parts: walls, roofs, stairs
 
 ## Tasks
 
-- [ ] Failing tests first: rotation/mirror of every stateful block family; auto-shape connections.
-- [ ] Rebuild the timer from modules (hopper clock + bulb phase switch + gates) and show it passes lint and simulation.
-- [ ] Each module: parameters, docstring, validate + lint test, simulator test for redstone.
-- [ ] Module catalogue in `docs/modules.md`.
-- [ ] CLI and MCP tools.
+- [x] Failing tests first: rotation/mirror of every stateful block family; auto-shape connections.
+- [x] Rebuild the timer from modules (hopper clock + bulb phase switch + gates) and show it passes lint and simulation.
+- [x] Each module: parameters, docstring, validate + lint test, simulator test for redstone.
+- [x] Module catalogue in `docs/modules.md`.
+- [x] CLI and MCP tools.
 
 ## Acceptance criteria
 
@@ -72,11 +72,11 @@ uv run schemsmith lint demo.litematic
 
 ## Definition of Done
 
-- [ ] All tests green locally; verification output pasted
-- [ ] No secrets, no Mojang files committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 08: Build API and module library` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
+- [x] All tests green locally; verification output pasted
+- [x] No secrets, no Mojang files committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 08: Build API and module library` open with verification output, then merged by the agent with `gh pr merge --merge --delete-branch` (only if every Verification command ran and passed)
 
 ## Risks / open questions
 
@@ -92,4 +92,32 @@ uv run schemsmith lint demo.litematic
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Run on a fresh clone of `phase-08-build-api`, 2026-11-01, Python 3.11.18.
+
+```text
+$ uv sync                        [exit 0]
+$ uv run ruff check .            All checks passed!
+$ uv run ruff format --check .   144 files already formatted
+$ uv run mypy                    Success: no issues found in 112 source files
+$ uv run pytest                  567 passed, 2 skipped (litemapy cross-check, network test)
+$ uv run schemsmith new demo.litematic --mc-version 26.3
+created demo.litematic (Minecraft 26.3, data version 5023)
+$ uv run schemsmith place demo.litematic hopper_clock --seconds 150 --at 0 1 0
+placed hopper_clock {'seconds': 150, 'indicator': True} (11x2x9) at (0, 1, 0) -> demo.placed.litematic
+ports: out=(6,2,5), hopper_a=(4,2,7), hopper_b=(5,2,7)
+$ uv run schemsmith lint demo.litematic
+0 finding(s): 0 error(s), 0 warning(s), 0 info
+```
+
+The phase's command sequence lints `demo.litematic`, but `place` must not overwrite its input without `--overwrite` (AGENTS.md rule 10), so the module went into `demo.placed.litematic`. The same check on files that actually contain the module:
+
+```text
+$ uv run schemsmith lint demo.placed.litematic
+0 finding(s): 0 error(s), 0 warning(s), 0 info
+$ uv run schemsmith place demo.litematic hopper_clock --seconds 150 --at 0 1 0 --overwrite
+placed hopper_clock {'seconds': 150, 'indicator': True} (11x2x9) at (0, 1, 0) -> demo.litematic
+$ uv run schemsmith lint demo.litematic
+0 finding(s): 0 error(s), 0 warning(s), 0 info
+```
+
+Acceptance: A1 `tests/build/test_geometry.py` (every directional state of the 26.3 registry: 4 turns = identity, 2 mirrors = identity, all 12 transforms stay valid; region transforms keep diode targets); A2 `tests/library/test_modules_clean.py` (19 modules × parameter edges × 1.21.11/26.3: validate clean and lint with **no findings at all**); A3 `tests/library/test_modules_sim.py` (every redstone module passes its scenario); A4 `tests/library/test_timer_from_modules.py` (the timer built from parts has v3's blocks and produces the identical event timeline).
