@@ -58,9 +58,9 @@ def cmd_install(args: argparse.Namespace) -> int:
         dry_run=args.dry_run,
     )
     verb = "would write" if res.dry_run else "wrote"
-    print(f"{verb} {res.structure_path}")
+    print(f"{verb} {res.structure_path.as_posix()}")
     if res.mcmeta_created:
-        print(f"{verb} {res.mcmeta_path} (data pack format {res.pack_format})")
+        print(f"{verb} {res.mcmeta_path.as_posix()} (data pack format {res.pack_format})")
     for note in res.notes:
         print(f"note: {note}")
     print("In the game (creative, cheats on):")

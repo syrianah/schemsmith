@@ -144,3 +144,15 @@ def test_cli_install(world: Path, tmp_path: Path, capsys: pytest.CaptureFixture[
     assert "--overwrite" in capsys.readouterr().err
     assert main(["install", str(src), "--world", str(world), "--name", "n2", "--dry-run"]) == 0
     assert not (world / "datapacks" / "schemsmith" / "data" / "schemsmith").exists()
+
+
+def test_cli_paths_use_forward_slashes(
+    world: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Windows: paths shown to the user use '/', never backslashes."""
+    src = tmp_path / "x.litematic"
+    save_structure(_demo(), src)
+    assert main(["install", str(src), "--world", str(world), "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "\\" not in out
+    assert "datapacks/schemsmith/data/schemsmith/structure/x.nbt" in out

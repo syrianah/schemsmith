@@ -13,6 +13,10 @@ Two bugs it is meant to catch automatically, both found by hand in a real build 
 - A torch meant to lock a hopper also powers the dropper below it through **quasi-connectivity**, so the dropper fires at the wrong moment.
 - A repeater used as a gate via **locking** freezes in the *on* state when the lock engages mid-pulse, leaving the gate open.
 
+## From an idea to a build
+
+[docs/workflow.md](docs/workflow.md) walks through the whole path: generate a build with the Python API, `validate` and `lint` it, preview it, place it in a creative world with `schemsmith install` and `/place template`, then build it in survival with Litematica.
+
 ## File formats
 
 Reads and writes Litematica `.litematic`, Sponge `.schem` (v1–v3) and vanilla structure `.nbt`. Reads legacy MCEdit/Schematica `.schematic` files (numeric block IDs, pre-1.13) and maps them to current blocks: `schemsmith convert old.schematic new.litematic`. IDs it cannot map become air and are listed, and so are dropped block entities.
