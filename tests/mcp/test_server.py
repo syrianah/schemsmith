@@ -11,8 +11,9 @@ import anyio
 import pytest
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.server.mcpserver.exceptions import ToolError
 
-from schemsmith.mcp.server import TOOL_NAMES, main
+from schemsmith.mcp.server import TOOL_NAMES, create_server, main
 
 V1 = "timer_v1_qc_dropper.litematic"
 
@@ -85,27 +86,21 @@ def test_help_and_bad_root(capsys: Any, tmp_path: Path) -> None:
 
 
 def test_in_process_tools_and_errors(root: Path) -> None:
-    from mcp.server.mcpserver.exceptions import ToolError
-
-    from schemsmith.mcp.server import create_server
-
     app = create_server(root)
 
     async def run() -> list[Any]:
         names = sorted(t.name for t in await app.list_tools())
-        ok = [
-            await app.call_tool(name, args)
-            for name, args in [
-                ("schematic_summary", {"path": V1}),
-                ("schematic_slice", {"path": V1, "y": 1, "x_max": 4}),
-                ("schematic_inspect", {"path": V1, "x": 0, "y": 0, "z": 0}),
-                ("schematic_query", {"path": V1, "category": "container"}),
-                ("schematic_validate", {"path": V1}),
-                ("redstone_lint", {"path": V1}),
-                ("redstone_trace", {"path": V1, "x": 10, "y": 1, "z": 9}),
-                ("schematic_edit", {"path": V1, "plan": {"edits": []}}),
-            ]
+        calls: list[tuple[str, dict[str, Any]]] = [
+            ("schematic_summary", {"path": V1}),
+            ("schematic_slice", {"path": V1, "y": 1, "x_max": 4}),
+            ("schematic_inspect", {"path": V1, "x": 0, "y": 0, "z": 0}),
+            ("schematic_query", {"path": V1, "category": "container"}),
+            ("schematic_validate", {"path": V1}),
+            ("redstone_lint", {"path": V1}),
+            ("redstone_trace", {"path": V1, "x": 10, "y": 1, "z": 9}),
+            ("schematic_edit", {"path": V1, "plan": {"edits": []}}),
         ]
+        ok = [await app.call_tool(name, args) for name, args in calls]
         with pytest.raises(ToolError, match="outside"):
             await app.call_tool("schematic_summary", {"path": "/etc/passwd"})
         return [names, ok]
