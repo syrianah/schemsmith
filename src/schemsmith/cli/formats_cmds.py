@@ -32,7 +32,9 @@ def register(sub: Any) -> None:
     p.add_argument("--region", help="region name (default: the only/first region)")
     p.set_defaults(handler=cmd_dump)
 
-    p = sub.add_parser("convert", help="convert between .litematic, .schem and .nbt")
+    p = sub.add_parser(
+        "convert", help="convert between .litematic, .schem and .nbt (and from legacy .schematic)"
+    )
     p.add_argument("input")
     p.add_argument("output")
     p.add_argument("--to", choices=FORMATS, help="target format (default: from extension)")
@@ -75,6 +77,7 @@ def summary(s: Structure) -> dict[str, Any]:
             for r in s.regions
         ],
         "top_materials": s.material_counts().most_common(TOP_MATERIALS),
+        "notes": list(s.notes),
     }
 
 
@@ -104,6 +107,8 @@ def cmd_info(args: argparse.Namespace) -> int:
     print("Top materials:")
     for name, n in info["top_materials"]:
         print(f"  {n:6d}  {name}")
+    for note in s.notes:
+        print(f"note: {note}")
     return 0
 
 
@@ -130,6 +135,8 @@ def cmd_dump(args: argparse.Namespace) -> int:
 def cmd_convert(args: argparse.Namespace) -> int:
     """Convert a schematic to another format without silently losing data."""
     s = load_structure(args.input)
+    for note in s.notes:
+        print(f"read: {note}")
     report = save_structure(s, args.output, args.to, overwrite=args.overwrite)
     for note in report.notes:
         print(f"note: {note}")

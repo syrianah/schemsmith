@@ -47,8 +47,9 @@ def test_format_helpers() -> None:
     assert format_for_path("a.txt") is None
     with pytest.raises(FormatError):
         detect_format(NamedTag("", Compound({"x": Int(1)})))
-    with pytest.raises(FormatError, match="legacy"):
-        detect_format(NamedTag("", Compound({"Blocks": Int(1), "Materials": Int(1)})))
+    legacy = Compound({"Blocks": Int(1), "Materials": Int(1), "Width": Int(1)})
+    assert detect_format(NamedTag("Schematic", legacy)) == "mcedit"  # issue #7
+    assert format_for_path("old.schematic") == "mcedit"
     with pytest.raises(FormatError):
         encode_structure(load_structure(FIXTURES[0]), "bogus")
 

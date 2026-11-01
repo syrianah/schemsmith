@@ -5,7 +5,9 @@
 * walls: ``low`` connections, a post (``up=true``) unless it is a straight line;
 * stairs: ``shape`` from the neighbouring stairs, like ``StairBlock.getStairsShape``.
 
-Full-block detection uses the conductive heuristic (issue #9).
+Connections follow :func:`schemsmith.redstone.lint.placement.connects` (the
+``connection-state`` lint), whose full-block test is the conductive heuristic (issue #9)
+plus glass.
 """
 
 from __future__ import annotations
@@ -13,7 +15,7 @@ from __future__ import annotations
 from schemsmith.core import BlockState, Region
 from schemsmith.redstone.graph import PowerGraph
 from schemsmith.redstone.graph.directions import HORIZONTAL, Dir, Vec3, step
-from schemsmith.registry.categories import is_conductive
+from schemsmith.redstone.lint.placement import connects
 
 _CCW = {Dir.NORTH: Dir.WEST, Dir.WEST: Dir.SOUTH, Dir.SOUTH: Dir.EAST, Dir.EAST: Dir.NORTH}
 
@@ -35,29 +37,10 @@ def _family(s: BlockState) -> str | None:
     return None
 
 
-def _full(s: BlockState) -> bool:
-    return not s.is_air and is_conductive(s)
-
-
-def _connects(fam: str, other: BlockState, side_from_other: Dir) -> bool:
-    of = _family(other)
-    if _full(other):
-        return True
-    if fam in ("fence", "nether_fence"):
-        if of == fam:
-            return True
-        if of == "gate":
-            f = other.get("facing")
-            return f is not None and Dir.from_key(f) in (
-                side_from_other.rotate_cw(),
-                _CCW[side_from_other],
-            )
-        return False
-    if fam == "pane":
-        return of in ("pane", "wall")
-    if fam == "wall":
-        return of in ("wall", "pane", "gate")
-    return False
+def _connects(block: BlockState, other: BlockState, d: Dir) -> bool:
+    """Same rules as the ``connection-state`` lint (issue #21): unknown neighbours do not
+    connect."""
+    return connects(block, other, d) is True
 
 
 def _stair_shape(region: Region, p: Vec3, s: BlockState) -> str:
@@ -102,7 +85,7 @@ def update_shapes(region: Region) -> int:
             for d in HORIZONTAL:
                 q = step(p, d)
                 other = region.get_block(*q) if region.contains(*q) else BlockState("minecraft:air")
-                ok = _connects(fam, other, d.opposite)
+                ok = _connects(s, other, d)
                 if fam == "wall":
                     sides[d.key] = "low" if ok else "none"
                 else:
