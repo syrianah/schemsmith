@@ -35,7 +35,9 @@ def _grow(region: Region, lo: Vec3, hi: Vec3) -> tuple[Region, Vec3]:
     size = (nhi[0] - nlo[0] + 1, nhi[1] - nlo[1] + 1, nhi[2] - nlo[2] + 1)
     shift = (-nlo[0], -nlo[1], -nlo[2])
     mc = region.min_corner
-    out = Region(size, name=region.name, position=(mc[0] - shift[0], mc[1] - shift[1], mc[2] - shift[2]))
+    out = Region(
+        size, name=region.name, position=(mc[0] - shift[0], mc[1] - shift[1], mc[2] - shift[2])
+    )
     for p, s in region.blocks():
         out.set_block(p[0] + shift[0], p[1] + shift[1], p[2] + shift[2], s)
     for p, be in region.block_entities.items():
@@ -66,7 +68,9 @@ def place_region(
     for (x, y, z), s in t.blocks():
         grown.set_block(x + at[0] + shift[0], y + at[1] + shift[1], z + at[2] + shift[2], s)
     for (x, y, z), be in t.block_entities.items():
-        grown.block_entities[(x + at[0] + shift[0], y + at[1] + shift[1], z + at[2] + shift[2])] = copy.deepcopy(be)
+        grown.block_entities[(x + at[0] + shift[0], y + at[1] + shift[1], z + at[2] + shift[2])] = (
+            copy.deepcopy(be)
+        )
     idx = structure.regions.index(target)
     structure.regions[idx] = grown
     return shift

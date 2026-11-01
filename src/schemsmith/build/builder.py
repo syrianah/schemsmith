@@ -99,7 +99,9 @@ class Builder:
             if p[0] in (x0, x1) or p[2] in (z0, z1):
                 self.set(p, s)
 
-    def floor(self, a: tuple[int, int], b: tuple[int, int], y: int, state: BlockState | str) -> None:
+    def floor(
+        self, a: tuple[int, int], b: tuple[int, int], y: int, state: BlockState | str
+    ) -> None:
         """A horizontal layer from ``(x0, z0)`` to ``(x1, z1)`` at height ``y``."""
         self.fill((a[0], y, a[1]), (b[0], y, b[1]), state)
 
@@ -112,7 +114,7 @@ class Builder:
         ridge: str = "x",
         overhang: int = 1,
     ) -> None:
-        """A gable roof of ``<material>_stairs`` over the rectangle a–b, starting at height y.
+        """A gable roof of ``<material>_stairs`` over the rectangle a-b, starting at height y.
 
         ``ridge`` is the axis the ridge runs along. Each step inward rises one block;
         an odd span gets a ``<material>_slab`` ridge. The gable ends are filled with
@@ -173,12 +175,15 @@ class Builder:
                 p = (base[0], base[1] + i, base[2])
                 for y in range(start[1], p[1]):
                     self.set((p[0], y, p[2]), f"minecraft:{material}_planks")
-                self.set(p, BlockState(f"minecraft:{material}_stairs", {"facing": d.key, "half": "bottom"}))
+                self.set(
+                    p,
+                    BlockState(f"minecraft:{material}_stairs", {"facing": d.key, "half": "bottom"}),
+                )
 
     def windows(
         self, a: Vec3, b: Vec3, glass: str = "minecraft:glass_pane", every: int = 2
     ) -> None:
-        """Replace every ``every``-th block of a flat wall a–b with glass panes."""
+        """Replace every ``every``-th block of a flat wall a-b with glass panes."""
         flat_x = a[0] == b[0]
         for p in _box(a, b):
             k = p[2] if flat_x else p[0]
@@ -191,7 +196,16 @@ class Builder:
         for half, dy in (("lower", 0), ("upper", 1)):
             self.set(
                 (pos[0], pos[1] + dy, pos[2]),
-                BlockState(name, {"facing": facing, "half": half, "hinge": hinge, "open": "false", "powered": "false"}),
+                BlockState(
+                    name,
+                    {
+                        "facing": facing,
+                        "half": half,
+                        "hinge": hinge,
+                        "open": "false",
+                        "powered": "false",
+                    },
+                ),
             )
 
     def container(self, pos: Vec3, items: list[tuple[str, int]]) -> None:
@@ -215,18 +229,17 @@ class Builder:
                 tags.append(tag)
                 left -= n
                 slot += 1
-        self.block_entities[pos] = Compound({"id": String(block.name), "Items": List(TagType.COMPOUND, tags)})
+        self.block_entities[pos] = Compound(
+            {"id": String(block.name), "Items": List(TagType.COMPOUND, tags)}
+        )
 
-    def light_up(
-        self, a: Vec3, b: Vec3, light: str = "minecraft:torch", floor_only: bool = True
-    ) -> int:
+    def light_up(self, a: Vec3, b: Vec3, light: str = "minecraft:torch") -> int:
         """Place lights until no spawnable spot in the box has block light 0.
 
         A spot is spawnable when it is air (or a non-full block) above a full block.
         Light spreads one level down per step through non-opaque blocks. Returns the
         number of lights placed.
         """
-        level = LIGHT_LEVELS.get(light, 14)
         placed = 0
         spots = [
             p
@@ -240,9 +253,6 @@ class Builder:
                 return placed
             self.set(dark[0], light)
             placed += 1
-            if not floor_only:
-                break
-        return placed  # pragma: no cover
 
     def _light_map(self, a: Vec3, b: Vec3) -> dict[Vec3, int]:
         lo = tuple(v - 15 for v in map(min, a, b))

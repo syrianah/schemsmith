@@ -66,7 +66,9 @@ def test_light_up_leaves_no_dark_spot() -> None:
     placed = b.light_up((0, 1, 0), (30, 1, 30))
     assert placed >= 3
     light = b._light_map((0, 1, 0), (30, 1, 30))
-    assert all(light.get((x, 1, z), 0) > 0 for x in range(31) for z in range(31) if b.get((x, 1, z)).is_air)
+    assert all(
+        light.get((x, 1, z), 0) > 0 for x in range(31) for z in range(31) if b.get((x, 1, z)).is_air
+    )
 
 
 def test_auto_shapes_fences_panes_walls_stairs_wire() -> None:
@@ -81,12 +83,17 @@ def test_auto_shapes_fences_panes_walls_stairs_wire() -> None:
     b.set((4, 0, 0), "oak_fence_gate[facing=north]")
     b.set((3, 0, 0), "oak_fence")
     r = b.to_region()
-    assert r.get_block(1, 0, 0).get("east") == "true" and r.get_block(1, 0, 0).get("north") == "false"
+    assert (
+        r.get_block(1, 0, 0).get("east") == "true" and r.get_block(1, 0, 0).get("north") == "false"
+    )
     assert r.get_block(3, 0, 0).get("east") == "true"  # gate in line
     assert r.get_block(0, 0, 2).get("east") == "true"
     assert r.get_block(1, 0, 4).get("up") == "false" and r.get_block(0, 0, 4).get("up") == "true"
     assert r.get_block(1, 0, 6).get("east") == "side"
-    assert r.get_block(0, 0, 8).get("shape") != "straight" or r.get_block(1, 0, 8).get("shape") != "straight"
+    assert (
+        r.get_block(0, 0, 8).get("shape") != "straight"
+        or r.get_block(1, 0, 8).get("shape") != "straight"
+    )
     assert update_shapes(r) == 0  # already consistent
 
 

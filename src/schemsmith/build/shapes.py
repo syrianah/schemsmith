@@ -28,7 +28,9 @@ def _family(s: BlockState) -> str | None:
         return "fence"
     if n.endswith("glass_pane") or n == "minecraft:iron_bars" or n.endswith("_bars"):
         return "pane"
-    if n.endswith("_wall") and not n.endswith(("_sign", "_banner", "_torch", "_head", "_skull", "_fan")):
+    if n.endswith("_wall") and not n.endswith(
+        ("_sign", "_banner", "_torch", "_head", "_skull", "_fan")
+    ):
         return "wall"
     return None
 
@@ -46,7 +48,10 @@ def _connects(fam: str, other: BlockState, side_from_other: Dir) -> bool:
             return True
         if of == "gate":
             f = other.get("facing")
-            return f is not None and Dir.from_key(f) in (side_from_other.rotate_cw(), _CCW[side_from_other])
+            return f is not None and Dir.from_key(f) in (
+                side_from_other.rotate_cw(),
+                _CCW[side_from_other],
+            )
         return False
     if fam == "pane":
         return of in ("pane", "wall")
