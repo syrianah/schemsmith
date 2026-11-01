@@ -56,6 +56,18 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 | `schematic_create` | New empty schematic for a Minecraft version |
 | `build_list_modules` / `build_place_module` | Module library: list, describe, place (rotated/mirrored) |
 | `render_preview` / `materials_list` / `build_guide` | Isometric PNG (no textures), material list, layer-by-layer guide |
+| `structure_install` | Put a schematic into a world datapack for `/place template` (world folder under the root) |
+
+### Installing into a world (`/place template`)
+
+`schemsmith install FILE --world PATH [--name NAME] [--namespace NS] [--pack PACK] [--mc-version 26.3] [--pack-format N] [--ground-y Y] [--overwrite] [--dry-run]` converts FILE to vanilla `.nbt` (palette keys of its data version) and writes:
+
+```
+<world>/datapacks/<pack>/pack.mcmeta                          # created only if missing (min_format/max_format)
+<world>/datapacks/<pack>/data/<namespace>/structure/<name>.nbt
+```
+
+It never writes to `<world>/generated/` (the game owns it; a file there broke a world upgrade). It prints the commands to run in the game (`/reload`, then `/place template ns:name ~ ~ ~`), with a y offset when the schematic origin sits above its lowest block (or `--ground-y`). The data pack format is known for 26.3 (121); for other releases pass `--pack-format` (`pack_version.data_major` in the server jar's `version.json`). An existing structure is replaced only with `--overwrite`, and the game caches templates, so after a change install under a new `--name` or rejoin the world.
 
 ### Edit plans
 

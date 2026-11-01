@@ -43,6 +43,7 @@ TOOL_NAMES = (
     "render_preview",
     "materials_list",
     "build_guide",
+    "structure_install",
 )
 
 _EXPECTED = (
@@ -217,6 +218,37 @@ def create_server(root: Path) -> MCPServer[Any]:
     ) -> dict[str, Any]:
         """Layer-by-layer Markdown build guide with redstone notes and linter warnings."""
         return _wrap(tools.build_guide)(path, script_path, y_min, y_max)
+
+    @app.tool()
+    def structure_install(
+        path: str,
+        world: str,
+        name: str | None = None,
+        namespace: str = "schemsmith",
+        pack: str = "schemsmith",
+        mc_version: str = "26.3",
+        pack_format: int | None = None,
+        ground_y: int | None = None,
+        overwrite: bool = False,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Install a schematic into a world (folder under the root, with level.dat) as
+        <world>/datapacks/<pack>/data/<namespace>/structure/<name>.nbt plus pack.mcmeta;
+        never writes <world>/generated/. Returns the /reload and /place template commands.
+        Refuses to replace a structure unless overwrite=true (the game caches templates:
+        prefer a new name after a change)."""
+        return _wrap(tools.structure_install)(
+            path,
+            world,
+            name,
+            namespace,
+            pack,
+            mc_version,
+            pack_format,
+            ground_y,
+            overwrite,
+            dry_run,
+        )
 
     return app
 

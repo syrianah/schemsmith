@@ -43,6 +43,7 @@ uv run schemsmith-mcp --root DIR # from phase 05
 uv run schemsmith simulate FILE --script S.yaml       # from phase 07
 uv run schemsmith new F / place F MODULE --at X Y Z   # from phase 08 (modules: docs/modules.md)
 uv run schemsmith materials F / guide F / render F    # from phase 09
+uv run schemsmith install F --world W [--name N]      # datapack for /place template (#24)
 ```
 
 ## Where to change things
@@ -56,6 +57,7 @@ uv run schemsmith materials F / guide F / render F    # from phase 09
 - **Build API and module library** → `src/schemsmith/build/`, `src/schemsmith/library/`
 - **Previews and build guides** → `src/schemsmith/render/`, `src/schemsmith/guide/`
 - **CLI / MCP server** → `src/schemsmith/cli/`, `src/schemsmith/mcp/`
+- **World datapack install** → `src/schemsmith/install.py`
 - **In-game harness** → `harness/`
 - **Regression schematics** → `fixtures/` (documented in `fixtures/README.md`)
 - **Minecraft knowledge (skills)** → `.claude/skills/`

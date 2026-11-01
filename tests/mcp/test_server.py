@@ -206,3 +206,33 @@ def test_render_preview_returns_image_over_mcp(root: Path) -> None:
     out = anyio.run(run)
     text = repr(out)
     assert "image/png" in text
+
+
+def test_structure_install_tool(root: Path) -> None:
+    tools = SchemsmithTools(root)
+    world = root / "world"
+    world.mkdir()
+    (world / "level.dat").write_bytes(b"")
+    out = tools.structure_install("timer_v3_fixed.litematic", "world", name="timer")
+    assert out["structure"] == "world/datapacks/schemsmith/data/schemsmith/structure/timer.nbt"
+    assert "/reload" in out["commands"] and out["pack_format"] == 121
+    with pytest.raises(FileExistsError):
+        tools.structure_install("timer_v3_fixed.litematic", "world", name="timer")
+    with pytest.raises(PermissionError):
+        tools.structure_install("timer_v3_fixed.litematic", "../outside")
+    assert not (world / "generated").exists()
+    dry = tools.structure_install("timer_v3_fixed.litematic", "world", name="t2", dry_run=True)
+    assert dry["dry_run"] and not (root / dry["structure"]).exists()
+
+
+def test_structure_install_symlink_escape(root: Path, tmp_path: Path) -> None:
+    tools = SchemsmithTools(root)
+    world = root / "w"
+    world.mkdir()
+    (world / "level.dat").write_bytes(b"")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (world / "datapacks").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(PermissionError):
+        tools.structure_install("timer_v3_fixed.litematic", "w")
+    assert not any(outside.iterdir())

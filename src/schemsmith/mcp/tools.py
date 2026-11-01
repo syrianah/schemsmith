@@ -18,9 +18,10 @@ from schemsmith.core.edits import EditError, apply_plan, plan_size
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.formats import format_for_path, load_structure, save_structure
 from schemsmith.guide import build_guide, material_list, to_markdown
+from schemsmith.install import install_structure, resource_name
 from schemsmith.library import MODULES, get_module
 from schemsmith.mcp import limits as L
-from schemsmith.mcp.paths import relative, resolve_in_root
+from schemsmith.mcp.paths import check_inside_root, relative, resolve_in_root
 from schemsmith.redstone.graph import ALL, PowerGraph, step
 from schemsmith.redstone.lint import RULES, SEVERITY_ORDER, lint_structure
 from schemsmith.redstone.sim import ScriptError, load_script, parse_script, simulate
@@ -495,3 +496,47 @@ class SchemsmithTools:
         if out.get("response_limited"):
             out["hint"] = "request fewer layers with y_min/y_max"
         return out
+
+    def structure_install(
+        self,
+        path: str,
+        world: str,
+        name: str | None = None,
+        namespace: str = "schemsmith",
+        pack: str = "schemsmith",
+        mc_version: str = "26.3",
+        pack_format: int | None = None,
+        ground_y: int | None = None,
+        overwrite: bool = False,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Install a schematic into a world datapack (under the root) for /place template."""
+        src, s = self._load(path)
+        w = resolve_in_root(self.root, world)
+        kwargs: dict[str, Any] = {
+            "namespace": namespace,
+            "pack": pack,
+            "mc_version": mc_version,
+            "pack_format": pack_format,
+            "ground_y": ground_y,
+            "overwrite": overwrite,
+        }
+        target = name or resource_name(src.name.split(".")[0])
+        res = install_structure(s, w, target, dry_run=True, **kwargs)
+        # a symlinked datapacks/ folder must not lead outside the root
+        check_inside_root(self.root, res.structure_path)
+        check_inside_root(self.root, res.mcmeta_path)
+        if not dry_run:
+            res = install_structure(s, w, target, **kwargs)
+        return bounded(
+            {
+                "structure": relative(self.root, res.structure_path),
+                "pack_mcmeta": relative(self.root, res.mcmeta_path),
+                "pack_mcmeta_created": res.mcmeta_created,
+                "pack_format": res.pack_format,
+                "resource": res.resource,
+                "commands": res.commands,
+                "notes": res.notes[: L.MAX_PAGE_ITEMS],
+                "dry_run": res.dry_run,
+            }
+        )
