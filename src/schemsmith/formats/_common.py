@@ -22,14 +22,25 @@ from schemsmith.nbt import (
 
 
 def state_from_nbt(tag: Tag) -> BlockState:
-    """Palette entry ``{Name, Properties}`` → :class:`BlockState`."""
+    """Palette entry → :class:`BlockState`.
+
+    Accepts ``{Name, Properties}`` (Litematica, vanilla up to 26.3-snapshot-6),
+    ``{id, properties}`` (vanilla structures from 26.3-snapshot-7, data version
+    5009) and a plain block-state string.
+    """
+    if isinstance(tag, String):
+        try:
+            return BlockState.parse(tag.value)
+        except ValueError as exc:
+            raise FormatError(f"invalid palette entry: {exc}") from exc
     if not isinstance(tag, Compound):
         raise FormatError("palette entry is not a compound")
+    name_key, props_key = ("id", "properties") if "id" in tag else ("Name", "Properties")
     try:
-        name = tag.get_str("Name")
+        name = tag.get_str(name_key)
         props: dict[str, str] = {}
-        if "Properties" in tag:
-            for k, v in tag.get_compound("Properties").items():
+        if props_key in tag:
+            for k, v in tag.get_compound(props_key).items():
                 if not isinstance(v, String):
                     raise FormatError(f"property {k!r} of {name} is not a string")
                 props[k] = v.value
@@ -38,11 +49,12 @@ def state_from_nbt(tag: Tag) -> BlockState:
         raise FormatError(f"invalid palette entry: {exc}") from exc
 
 
-def state_to_nbt(state: BlockState) -> Compound:
-    """:class:`BlockState` → palette entry ``{Name, Properties}``."""
-    out = Compound({"Name": String(state.name)})
+def state_to_nbt(state: BlockState, *, id_keys: bool = False) -> Compound:
+    """:class:`BlockState` → palette entry ``{Name, Properties}``, or ``{id, properties}``."""
+    name_key, props_key = ("id", "properties") if id_keys else ("Name", "Properties")
+    out = Compound({name_key: String(state.name)})
     if state.properties:
-        out["Properties"] = Compound({k: String(v) for k, v in state.properties})
+        out[props_key] = Compound({k: String(v) for k, v in state.properties})
     return out
 
 
