@@ -11,8 +11,12 @@ from schemsmith.core import Structure
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.redstone.graph import PowerGraph
 from schemsmith.redstone.lint.fixes import apply_fix
-from schemsmith.redstone.lint.placement import PLACEMENT_RULES
+from schemsmith.redstone.lint.placement import PLACEMENT_RULES as _BASIC
+from schemsmith.redstone.lint.placement_state import PLACEMENT_STATE_RULES
 from schemsmith.redstone.lint.rules import RULE_DOCS, RULES, LintContext
+
+PLACEMENT_RULES = (*_BASIC, *PLACEMENT_STATE_RULES)
+"""All block placement rules (issues #21 and #26)."""
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 

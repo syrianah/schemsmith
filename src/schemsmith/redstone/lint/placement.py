@@ -180,7 +180,8 @@ def pane_diagonal(ctx: LintContext) -> Iterator[Diagnostic]:
             f"with {orth} orthogonal connection(s): panes only connect orthogonally, so a "
             "curved or 45° wall shows thin posts and gaps in game",
             f"{alt}, or give every pane two orthogonal neighbours "
-            "(a pane in one of the corner gaps)",
+            "(a pane in one of the corner gaps); ignore this if the thin, round look is "
+            "intentional (e.g. a chandelier)",
             [_set(p, full)] if full else None,
             f"replace with {full}" if full else None,
         )
@@ -353,7 +354,7 @@ def _where(d: Dir) -> str:
 @rule(
     "needs-support",
     "Torches, lanterns, candles, carpets, plates, rails, buttons, levers, signs, banners, "
-    "ladders, vines and plants placed on air (they pop off), and plants not on soil",
+    "ladders, vines and plants placed on air (they pop off); wrong soil is `plant-soil`",
 )
 def needs_support(ctx: LintContext) -> Iterator[Diagnostic]:
     g = ctx.graph
@@ -377,20 +378,6 @@ def needs_support(ctx: LintContext) -> Iterator[Diagnostic]:
                 f"{ctx.name(p)} has only air {where}; it breaks (pops off) when placed or updated",
                 f"put a solid block {where}, or move the {s.short_name}",
             )
-            continue
-        if _is_plant(s):
-            below = g.state(step(p, Dir.DOWN))
-            if below.id not in SOIL and not _air(below):
-                yield ctx.diag(
-                    "needs-support",
-                    Severity.WARNING,
-                    p,
-                    f"{ctx.name(p)} stands on {below.short_name}, not on soil; the game will "
-                    "not keep it there",
-                    f"put dirt, grass_block or moss_block under it at {_xyz(step(p, Dir.DOWN))}",
-                    [_set(step(p, Dir.DOWN), "minecraft:grass_block[snowy=false]")],
-                    "put grass_block under the plant",
-                )
 
 
 # gravity-block -------------------------------------------------------------------

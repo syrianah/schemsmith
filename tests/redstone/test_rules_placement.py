@@ -191,12 +191,14 @@ def test_vines_need_a_face_or_vine_above() -> None:
 
 
 def test_plants_need_soil() -> None:
-    found = lint({(1, 1, 1): "oak_sapling[stage=0]", (2, 1, 1): "poppy"}, "needs-support")
-    assert len(found) == 2 and all("soil" in d.message for d in found)
+    # wrong soil moved to the plant-soil rule (issue #26); needs-support only checks air
+    assert lint({(1, 1, 1): "oak_sapling[stage=0]", (2, 1, 1): "poppy"}, "needs-support") == []
+    found = lint({(1, 1, 1): "oak_sapling[stage=0]", (2, 1, 1): "poppy"}, "plant-soil")
+    assert len(found) == 2 and all("needs dirt" in d.message for d in found)
     r = Region((3, 2, 3))
     r.set_block(1, 0, 1, "minecraft:grass_block[snowy=false]")
     r.set_block(1, 1, 1, "minecraft:poppy")
-    assert lint_structure(Structure(regions=[r], data_version=4671), ["needs-support"]) == []
+    assert lint_structure(Structure(regions=[r], data_version=4671), ["plant-soil"]) == []
 
 
 # gravity-block ---------------------------------------------------------------

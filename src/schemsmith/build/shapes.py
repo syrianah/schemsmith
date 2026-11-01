@@ -16,6 +16,7 @@ from schemsmith.core import BlockState, Region
 from schemsmith.redstone.graph import PowerGraph
 from schemsmith.redstone.graph.directions import HORIZONTAL, Dir, Vec3, step
 from schemsmith.redstone.lint.placement import connects
+from schemsmith.redstone.lint.placement_state import wall_state
 
 _CCW = {Dir.NORTH: Dir.WEST, Dir.WEST: Dir.SOUTH, Dir.SOUTH: Dir.EAST, Dir.EAST: Dir.NORTH}
 
@@ -75,6 +76,10 @@ def update_shapes(region: Region) -> int:
     changed = 0
     graph = PowerGraph.build(region)
     updates: dict[Vec3, BlockState] = {}
+
+    def get(q: Vec3) -> BlockState:
+        return region.get_block(*q) if region.contains(*q) else BlockState("minecraft:air")
+
     for p, s in region.blocks():
         if p in graph.wire_shapes:
             updates[p] = graph.expected_wire_state(p)
@@ -94,6 +99,10 @@ def update_shapes(region: Region) -> int:
                 c = {k for k, v in sides.items() if v != "none"}
                 straight = c in ({"north", "south"}, {"east", "west"})
                 sides["up"] = "false" if straight else "true"
+                full = wall_state(get, p, s.with_properties(**sides))
+                if full is not None:  # tall sides and posts like the game (wall-shape lint)
+                    updates[p] = full
+                    continue
             updates[p] = s.with_properties(**sides)
         elif s.name.endswith("_stairs"):
             updates[p] = s.with_properties(shape=_stair_shape(region, p, s))
