@@ -1,7 +1,8 @@
 """Vanilla structure files (``.nbt``, written by structure blocks).
 
 Layout (gzip NBT, root compound): ``DataVersion``, ``size`` (3 Ints),
-``palette`` (list of {Name, Properties}) or ``palettes`` (list of palettes,
+``palette`` (list of {Name, Properties}; {id, properties} from data version
+:data:`ID_PALETTE_DATA_VERSION`) or ``palettes`` (list of palettes,
 used by shipwrecks; we read the first and keep the rest as an unknown tag),
 ``blocks`` (list of {``state``, ``pos``, optional ``nbt``}) and ``entities``
 (list of {``pos`` doubles, ``blockPos`` ints, ``nbt``}).
@@ -33,6 +34,11 @@ from schemsmith.formats.merge import merge_regions
 from schemsmith.nbt import Compound, Int, List, NamedTag, TagType
 
 STRUCTURE_VOID = BlockState("minecraft:structure_void")
+ID_PALETTE_DATA_VERSION = 5009
+"""First data version (26.3-snapshot-7) whose structure files use ``{id, properties}``
+palette entries. 26.3-snapshot-6 (5005) still used ``{Name, Properties}``. The game
+upgrades older files on load, but a file that declares 5009+ with the old keys is
+read as air (issue #20)."""
 _KEYS = ("DataVersion", "size", "palette", "palettes", "blocks", "entities")
 
 
@@ -123,7 +129,10 @@ def write_vanilla(structure: Structure) -> tuple[NamedTag, ConversionReport]:
     root["size"] = int_list(region.dims)
     root["entities"] = List(TagType.COMPOUND, entities)
     root["blocks"] = List(TagType.COMPOUND, blocks)
-    palette = List(TagType.COMPOUND, [state_to_nbt(region.palette[i]) for i in used])
+    id_keys = structure.data_version >= ID_PALETTE_DATA_VERSION
+    palette = List(
+        TagType.COMPOUND, [state_to_nbt(region.palette[i], id_keys=id_keys) for i in used]
+    )
     if same and isinstance(structure.extra.get("palettes"), List):
         pal = List(TagType.LIST, [palette, *list(structure.extra.get_list("palettes"))[1:]])
         root["palettes"] = pal

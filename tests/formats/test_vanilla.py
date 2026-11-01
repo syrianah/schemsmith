@@ -6,7 +6,13 @@ import pytest
 
 from schemsmith.core import BlockState, Entity, Region, Structure
 from schemsmith.formats import FormatError, encode_structure, read_structure
-from schemsmith.formats.vanilla import STRUCTURE_VOID, read_vanilla, write_vanilla
+from schemsmith.formats._common import state_from_nbt
+from schemsmith.formats.vanilla import (
+    ID_PALETTE_DATA_VERSION,
+    STRUCTURE_VOID,
+    read_vanilla,
+    write_vanilla,
+)
 from schemsmith.nbt import Compound, Int, List, NamedTag, String, TagType, decode
 
 
@@ -89,3 +95,68 @@ def test_malformed(mutate: object) -> None:
 
 def test_state_strings() -> None:
     assert BlockState.parse("minecraft:structure_void") == STRUCTURE_VOID
+
+
+@pytest.mark.parametrize(
+    ("data_version", "keys"),
+    [
+        (4903, ("Name", "Properties")),  # 26.2
+        (5005, ("Name", "Properties")),  # 26.3-snapshot-6
+        (ID_PALETTE_DATA_VERSION, ("id", "properties")),  # 26.3-snapshot-7
+        (5023, ("id", "properties")),  # 26.3
+    ],
+)
+def test_palette_keys_follow_data_version(data_version: int, keys: tuple[str, str]) -> None:
+    # issue #20: 26.3 reads {id, properties}; old keys under a new data version load as air
+    s = _sample()
+    s.data_version = data_version
+    named, _ = write_vanilla(s)
+    root = named.tag
+    assert isinstance(root, Compound)
+    entries = list(root.get_list("palette"))
+    hopper = next(e for e in entries if isinstance(e, Compound) and len(e) == 2)
+    assert set(hopper) == set(keys)
+    back = read_vanilla(named)
+    assert back.regions[0] == s.regions[0]
+
+
+def test_read_26_3_palette_layouts() -> None:
+    # hand-written equivalent of a 26.3 structure file (no Mojang data committed)
+    root = Compound(
+        {
+            "DataVersion": Int(5023),
+            "size": List(TagType.INT, [Int(3), Int(1), Int(1)]),
+            "palette": List(
+                TagType.COMPOUND,
+                [
+                    Compound({"id": String("minecraft:ice")}),
+                    Compound(
+                        {
+                            "id": String("minecraft:oak_trapdoor"),
+                            "properties": Compound(
+                                {"half": String("top"), "open": String("false")}
+                            ),
+                        }
+                    ),
+                ],
+            ),
+            "blocks": List(
+                TagType.COMPOUND,
+                [
+                    Compound({"pos": List(TagType.INT, [Int(0), Int(0), Int(0)]), "state": Int(0)}),
+                    Compound({"pos": List(TagType.INT, [Int(1), Int(0), Int(0)]), "state": Int(1)}),
+                ],
+            ),
+            "entities": List(TagType.COMPOUND, []),
+        }
+    )
+    r = read_vanilla(NamedTag("", root)).regions[0]
+    assert r.get_block(0, 0, 0) == BlockState("minecraft:ice")
+    assert r.get_block(1, 0, 0) == BlockState.parse("minecraft:oak_trapdoor[half=top,open=false]")
+    assert r.get_block(2, 0, 0) == STRUCTURE_VOID
+
+
+def test_plain_string_palette_entry() -> None:
+    assert state_from_nbt(String("minecraft:lantern[hanging=true]")) == BlockState.parse(
+        "minecraft:lantern[hanging=true]"
+    )
