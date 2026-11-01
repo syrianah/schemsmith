@@ -50,7 +50,7 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 | `schematic_query` | Find blocks by pattern or category, paginated |
 | `schematic_edit` | Preview an edit plan; `apply=true` writes a **new** file unless `overwrite=true` |
 | `schematic_validate` | Invalid block states, data-version mismatches |
-| `redstone_lint` | Redstone diagnostics, each with a `fix` edit plan where possible |
+| `redstone_lint` | Redstone and block placement diagnostics ([docs/lint-rules.md](docs/lint-rules.md)), each with a `fix` edit plan where possible |
 | `redstone_trace` | What powers a block and what it powers |
 | `redstone_simulate` | Run an action script tick by tick (events, timeline, expectations) |
 | `schematic_create` | New empty schematic for a Minecraft version |

@@ -18,7 +18,7 @@ def register(sub: Any) -> None:
     """Add ``lint`` and ``trace``."""
     p = sub.add_parser(
         "lint",
-        help="find redstone mistakes (quasi-connectivity, locked repeaters, ...)",
+        help="find redstone and block placement mistakes (QC, panes on curves, ...)",
         description="Exit code: 0 = no errors, 1 = errors found, 2 = could not run. "
         f"Rules: {', '.join(RULES)}.",
     )
