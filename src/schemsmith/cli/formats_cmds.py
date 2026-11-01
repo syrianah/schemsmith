@@ -11,13 +11,12 @@ from typing import Any
 from schemsmith.core import Region, Structure
 from schemsmith.core.edits import apply_plan
 from schemsmith.formats import FORMATS, load_structure, save_structure
+from schemsmith.render.ascii import layer_ascii
 
 TOP_MATERIALS = 10
 PREVIEW_LINES = 50
 """Changes printed by ``edit``."""
 """How many materials ``info`` lists."""
-
-LEGEND_CHARS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$%&*+=?"
 
 
 def register(sub: Any) -> None:
@@ -112,35 +111,6 @@ def _pick_region(s: Structure, name: str | None) -> Region:
     if name is not None:
         return s.region(name)
     return s.regions[0]
-
-
-def layer_ascii(region: Region, y: int) -> list[str]:
-    """ASCII drawing of one layer (rows = z, columns = x) followed by a legend."""
-    w, h, length = region.dims
-    if not 0 <= y < h:
-        raise ValueError(f"layer {y} outside 0..{h - 1}")
-    legend: dict[str, str] = {}
-    rows = []
-    header = "    " + "".join(str(x % 10) for x in range(w))
-    rows.append(header)
-    for z in range(length):
-        line = []
-        for x in range(w):
-            state = region.get_block(x, y, z)
-            if state.is_air:
-                line.append(".")
-                continue
-            key = str(state)
-            if key not in legend:
-                i = len(legend)
-                legend[key] = LEGEND_CHARS[i] if i < len(LEGEND_CHARS) else "?"
-            line.append(legend[key])
-        rows.append(f"{z:3d} " + "".join(line))
-    rows.append("")
-    rows.append("Legend (x → right, z ↓):")
-    rows.append("  . air")
-    rows.extend(f"  {ch} {state}" for state, ch in legend.items())
-    return rows
 
 
 def cmd_dump(args: argparse.Namespace) -> int:

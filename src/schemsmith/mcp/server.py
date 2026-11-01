@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 from schemsmith import __version__
@@ -40,6 +40,9 @@ TOOL_NAMES = (
     "schematic_create",
     "build_list_modules",
     "build_place_module",
+    "render_preview",
+    "materials_list",
+    "build_guide",
 )
 
 _EXPECTED = (
@@ -190,6 +193,30 @@ def create_server(root: Path) -> MCPServer[Any]:
         return _wrap(tools.build_place_module)(
             path, module, params, at, rotate, mirror, output, overwrite
         )
+
+    @app.tool()
+    def render_preview(path: str, region: str | None = None) -> Image | dict[str, Any]:
+        """Isometric PNG preview with per-block colours (no textures), size-limited."""
+        out = _wrap(tools.render_preview)(path, region)  # type: ignore[arg-type]
+        if isinstance(out, bytes):
+            return Image(data=out, format="png")
+        return out
+
+    @app.tool()
+    def materials_list(path: str, script_path: str | None = None) -> dict[str, Any]:
+        """Material list (items, stacks, shulker boxes) plus container contents from the
+        schematic and, optionally, an action script's setup."""
+        return _wrap(tools.materials_list)(path, script_path)
+
+    @app.tool()
+    def build_guide(
+        path: str,
+        script_path: str | None = None,
+        y_min: int | None = None,
+        y_max: int | None = None,
+    ) -> dict[str, Any]:
+        """Layer-by-layer Markdown build guide with redstone notes and linter warnings."""
+        return _wrap(tools.build_guide)(path, script_path, y_min, y_max)
 
     return app
 
