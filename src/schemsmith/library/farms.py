@@ -58,6 +58,7 @@ def _pumpkin_melon(units: int, crop: str) -> Builder:
     for i in range(units):
         x = 2 * i
         b.set((x, 1, 0), WATER)
+        b.set((x + 1, 1, 0), "minecraft:stone")  # keeps the water from spilling sideways
         b.set((x, 1, 1), "minecraft:farmland[moisture=7]")
         b.set((x, 2, 1), f"minecraft:{crop}_stem[age=0]")
         b.set((x, 1, 2), "minecraft:dirt")
