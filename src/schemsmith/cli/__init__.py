@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable, Sequence
 
 from schemsmith import __version__
-from schemsmith.cli import formats_cmds, redstone_cmds, registry_cmds
+from schemsmith.cli import build_cmds, formats_cmds, redstone_cmds, registry_cmds
 
 Handler = Callable[[argparse.Namespace], int]
 
@@ -23,13 +23,17 @@ def build_parser() -> argparse.ArgumentParser:
     formats_cmds.register(sub)
     registry_cmds.register(sub)
     redstone_cmds.register(sub)
+    build_cmds.register(sub)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return the process exit code."""
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args, extra = parser.parse_known_args(argv)
+    if extra and getattr(args, "command", None) != "place":
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
+    args.extra = extra
     if args.command is None:
         parser.print_help()
         return 0

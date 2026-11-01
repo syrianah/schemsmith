@@ -11,11 +11,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+from schemsmith.build import new_structure, place_region
 from schemsmith.cli.formats_cmds import LEGEND_CHARS, summary
 from schemsmith.core import Region, Structure
 from schemsmith.core.edits import EditError, apply_plan, plan_size
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.formats import format_for_path, load_structure, save_structure
+from schemsmith.library import MODULES, get_module
 from schemsmith.mcp import limits as L
 from schemsmith.mcp.paths import relative, resolve_in_root
 from schemsmith.redstone.graph import ALL, PowerGraph, step
@@ -340,3 +342,111 @@ class SchemsmithTools:
         except ScriptError as exc:
             raise ValueError(f"invalid script: {exc}") from exc
         return bounded(result.to_dict(L.MAX_SIM_EVENTS, L.MAX_SIM_TIMELINE))
+
+    def schematic_create(
+        self,
+        path: str,
+        mc_version: str = "26.3",
+        size: list[int] | None = None,
+        overwrite: bool = False,
+    ) -> dict[str, Any]:
+        """Create an empty schematic (data version of ``mc_version``)."""
+        target = resolve_in_root(self.root, path, must_exist=False)
+        if target.exists() and not overwrite:
+            raise FileExistsError(f"{path} exists; pass overwrite=true to replace it")
+        dims = tuple(size or (1, 1, 1))
+        if len(dims) != 3 or min(dims) < 1 or max(dims) > 512:
+            raise ValueError("size must be three integers between 1 and 512")
+        s = new_structure(mc_version, (dims[0], dims[1], dims[2]), target.stem)
+        save_structure(s, target, overwrite=overwrite)
+        return {
+            "path": relative(self.root, target),
+            "data_version": s.data_version,
+            "size": list(dims),
+        }
+
+    def build_list_modules(self, name: str | None = None) -> dict[str, Any]:
+        """The module catalogue, or one module's parameters and ports."""
+        if name is None:
+            return bounded(
+                {
+                    "modules": [
+                        {"name": m.name, "category": m.category, "summary": m.summary}
+                        for m in sorted(MODULES.values(), key=lambda m: (m.category, m.name))
+                    ]
+                }
+            )
+        m = get_module(name)
+        return bounded(
+            {
+                "name": m.name,
+                "category": m.category,
+                "summary": m.summary,
+                "params": [
+                    {
+                        "name": p.name,
+                        "type": p.kind.__name__,
+                        "default": p.default,
+                        "help": p.help,
+                        "min": p.minimum,
+                        "max": p.maximum,
+                        "choices": list(p.choices) if p.choices else None,
+                    }
+                    for p in m.params
+                ],
+                "ports": {k: list(v) for k, v in m.get_ports().items()},
+                "notes": m.notes,
+            }
+        )
+
+    def build_place_module(
+        self,
+        path: str,
+        module: str,
+        params: dict[str, Any] | None = None,
+        at: list[int] | None = None,
+        rotate: int = 0,
+        mirror: str | None = None,
+        output: str | None = None,
+        overwrite: bool = False,
+    ) -> dict[str, Any]:
+        """Place a library module; writes ``output`` (default ``<name>.placed<ext>``) or the
+        input itself only with ``overwrite=true``."""
+        src, s = self._load(path)
+        if rotate not in (0, 90, 180, 270):
+            raise ValueError("rotate must be 0, 90, 180 or 270")
+        pos = tuple(at or (0, 0, 0))
+        if len(pos) != 3:
+            raise ValueError("at must be [x, y, z]")
+        m = get_module(module)
+        part = m.build(**(params or {}))
+        if part.volume > L.MAX_FILL_VOLUME:
+            return L.limited(
+                "MAX_FILL_VOLUME", part.volume, L.MAX_FILL_VOLUME, "smaller parameters"
+            )
+        shift = place_region(s, part, (pos[0], pos[1], pos[2]), rotate // 90, mirror)
+        if output is not None:
+            target = resolve_in_root(self.root, output, must_exist=False)
+        elif overwrite:
+            target = src
+        else:
+            target = src.with_name(f"{src.stem}.placed{src.suffix}")
+        if target.exists() and not overwrite:
+            raise FileExistsError(f"{relative(self.root, target)} exists; pass overwrite=true")
+        save_structure(s, target, format_for_path(target) or s.format, overwrite=overwrite)
+        ports = {}
+        if rotate == 0 and mirror is None:
+            ports = {
+                k: [x + pos[0] + shift[0], y + pos[1] + shift[1], z + pos[2] + shift[2]]
+                for k, (x, y, z) in m.get_ports(**(params or {})).items()
+            }
+        return bounded(
+            {
+                "output": relative(self.root, target),
+                "module": module,
+                "params": m.resolve(**(params or {})),
+                "size": list(part.dims),
+                "shift": list(shift),
+                "ports": ports,
+            }
+        )

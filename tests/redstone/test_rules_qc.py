@@ -53,10 +53,25 @@ def test_positive_lever_feeding_repeater_above_piston() -> None:
         RULE,
         size=(6, 4, 6),
     )
-    # the lever at (2,2,1) feeds the repeater at (2,2,2), which sits above the piston: a lever
-    # emits power in every direction, so the piston is quasi-powered too
+    # the lever at (2,2,1) quasi-powers the piston, but the same lever also powers the piston
+    # directly through its attached block (2,1,1): QC adds nothing, so no finding
+    assert diags == []
+
+
+def test_positive_qc_source_differs_from_direct_input() -> None:
+    diags = lint(
+        {
+            (2, 1, 2): "piston[facing=up]",
+            (3, 1, 2): "lever[face=floor,facing=north]",  # direct input
+            (2, 2, 3): "redstone_torch",  # next to the position above the piston
+            (2, 1, 3): "stone",
+            (2, 2, 4): "redstone_lamp",  # the torch's real job
+        },
+        RULE,
+        size=(6, 4, 6),
+    )
     assert [d.pos for d in diags] == [(2, 1, 2)]
-    assert "lever (2,2,1)" in diags[0].message
+    assert "redstone_torch (2,2,3)" in diags[0].message
 
 
 def test_negative_qc_only_source_is_intended() -> None:

@@ -40,6 +40,8 @@ uv run python scripts/gen_registry.py <mc-version>   # from phase 03, needs netw
 uv run schemsmith lint FILE / trace FILE X Y Z       # from phase 04
 uv run schemsmith edit FILE --plan plan.json [--apply]  # from phase 05
 uv run schemsmith-mcp --root DIR # from phase 05
+uv run schemsmith simulate FILE --script S.yaml       # from phase 07
+uv run schemsmith new F / place F MODULE --at X Y Z   # from phase 08 (modules: docs/modules.md)
 ```
 
 ## Where to change things

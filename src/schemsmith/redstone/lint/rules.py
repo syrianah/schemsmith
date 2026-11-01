@@ -104,6 +104,28 @@ def _is_wired_source(ctx: LintContext, e: Edge) -> bool:
     return e.src_role == "b" or s.name not in SENSOR_SOURCES
 
 
+ORIGIN_SEARCH_LIMIT = 400
+"""Most graph nodes visited when tracing a signal back to its sources."""
+
+
+def _origins(ctx: LintContext, node: tuple[Vec3, str]) -> set[tuple[Vec3, str]]:
+    """Source components (levers, buttons, torches, ...) a node's power can come from."""
+    g = ctx.graph
+    seen = {node}
+    stack = [node]
+    found: set[tuple[Vec3, str]] = set()
+    while stack and len(seen) < ORIGIN_SEARCH_LIMIT:
+        n = stack.pop()
+        if n[1] == "c" and C.is_source(g.state(n[0])):
+            found.add(n)
+            continue
+        for e in g.in_edges[n]:
+            if e.kind in ACTIVATING and e.kind != "read" and e.src_node not in seen:
+                seen.add(e.src_node)
+                stack.append(e.src_node)
+    return found
+
+
 def _other_sinks(ctx: LintContext, src: Vec3, exclude: Vec3) -> list[Vec3]:
     return sorted(
         {
@@ -127,12 +149,18 @@ def qc_unintended_power(ctx: LintContext) -> Iterator[Diagnostic]:
     for p, s in sorted(g.positions()):
         if not C.is_qc_device(s):
             continue
+        direct_origins: set[tuple[Vec3, str]] = set()
+        for d in g.inputs(p, ACTIVATING - {"qc"}):
+            direct_origins |= _origins(ctx, d.src_node)
         for e in g.inputs(p, ["qc"]):
             if not _is_wired_source(ctx, e) or e.src_node not in g.may_on:
                 continue
             others = _other_sinks(ctx, e.src, p)
             if not others:
                 continue  # QC is the only thing this source does: probably intended
+            qc_origins = _origins(ctx, e.src_node)
+            if qc_origins and qc_origins <= direct_origins:
+                continue  # the same signal also powers the device directly: QC changes nothing
             above = e.via
             assert above is not None
             controls = ", ".join(ctx.name(o) for o in others[:3])

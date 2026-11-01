@@ -269,3 +269,67 @@ def test_simulate_cli(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> Non
     bad = tmp_path / "bad.yaml"
     bad.write_text("actions: [{at: 1}]")
     assert main(["simulate", v3, "--script", str(bad)]) == 2
+
+
+def test_new_place_modules(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    demo = tmp_path / "demo.litematic"
+    assert main(["new", str(demo), "--mc-version", "26.3"]) == 0
+    assert "data version" in capsys.readouterr().out
+    assert main(["new", str(demo)]) == 2  # exists
+    before = demo.read_bytes()
+    assert (
+        main(["place", str(demo), "hopper_clock", "--seconds", "150", "--at", "0", "1", "0"]) == 0
+    )
+    out = capsys.readouterr().out
+    assert "ports:" in out and "demo.placed.litematic" in out
+    assert demo.read_bytes() == before  # never overwritten without --overwrite
+    placed = tmp_path / "demo.placed.litematic"
+    assert main(["lint", str(placed)]) == 0
+    assert "0 finding(s)" in capsys.readouterr().out
+    assert (
+        main(
+            [
+                "place",
+                str(demo),
+                "t_flip_flop",
+                "--at",
+                "0",
+                "0",
+                "0",
+                "--overwrite",
+                "--rotate",
+                "90",
+            ]
+        )
+        == 0
+    )
+    assert demo.read_bytes() != before
+    assert (
+        main(
+            [
+                "place",
+                str(demo),
+                "and_gate",
+                "--output",
+                str(tmp_path / "x.schem"),
+                "--mirror",
+                "x",
+                "--at",
+                "-2",
+                "0",
+                "0",
+            ]
+        )
+        == 0
+    )
+    assert "grew" in capsys.readouterr().out
+    assert main(["place", str(demo), "hopper_clock", "--bogus", "1"]) == 2
+    assert main(["place", str(demo), "hopper_clock", "--seconds"]) == 2
+    assert main(["place", str(demo), "hopper_clock", "stray"]) == 2
+    assert main(["place", str(demo), "hopper_clock", "--seconds=999"]) == 2
+    assert main(["modules"]) == 0
+    assert "hopper_clock" in capsys.readouterr().out
+    assert main(["modules", "game_timer"]) == 0
+    assert "--cube-item" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        main(["info", str(demo), "--unknown-flag"])
