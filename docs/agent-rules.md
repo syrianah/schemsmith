@@ -81,3 +81,24 @@ The real game is the source of truth, not our simulator or these skills. When un
 
 The tick simulator (`schemsmith.redstone.sim`) is not the game. Its known simplifications are listed in `SIMPLIFICATIONS` (`src/schemsmith/redstone/sim/engine.py`) and printed with every result. Behaviour still to be confirmed in-game is tracked in issue #12. Until the phase 06 harness exists, the simulator is checked only against the timer scenarios in `fixtures/README.md`, the component timings in `tests/redstone/sim/test_components.py` and the piston rules in `tests/redstone/sim/test_pistons.py` (issue #16).
 
+## 12. In-game harness (phase 06)
+
+The harness runs a schematic and an action script on a real vanilla server **on the owner's machine only** (OQ-1). Design: [adr/0002-harness.md](adr/0002-harness.md).
+
+Before the first run (owner):
+
+1. Read the Minecraft EULA at https://aka.ms/MinecraftEULA. If you accept it, create `~/.schemsmith/eula.txt` yourself (on Windows `%USERPROFILE%\.schemsmith\eula.txt`) with one line: the word `eula`, an equals sign, the word `true`. Any encoding the usual editors or PowerShell write is fine. **Agents never create this file**, and nothing in schemsmith writes it.
+2. Install Java (the owner uses Java 26) and download the server jar once: `uv run python scripts/gen_registry.py 26.3`, which puts it in `.mc-cache/26.3/server.jar`.
+
+Run:
+
+```bash
+uv run schemsmith verify fixtures/timer_v3_fixed.litematic --script fixtures/timer_start.yaml --compare-sim
+uv run pytest -m game --run-game tests/harness
+```
+
+- `verify` exits 0 (passed), 1 (failed) or 2 (could not run, e.g. no EULA file or no jar). `--keep` keeps `.mc-cache/harness/run-*` with `server.log`; `--format json` for tools.
+- Scripts are the simulator's (`simulate --script`). Supported in the game: `press`, `hold`, `toggle`, `insert`; expectations `events` (bell, note, disc_start, disc_end, piston_extend, piston_retract, bulb_on, bulb_off, press, toggle), `container`, and probes of `block`, `items`, `power`, `output` and the boolean states. Anything else is refused before the server starts.
+- `tests/harness/test_game_cases.py` checks that the game gives the simulator's answers for the #12 timings. A failure means the simulator is wrong: fix `src/schemsmith/redstone/sim` and the `minecraft-redstone` skill.
+- Agents (cloud or local) never run `game` tests and never start a server.
+

@@ -1,6 +1,6 @@
 # Phase 06: In-game verification harness
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-06-harness`
 
 ## Goal
@@ -46,11 +46,11 @@ A schematic can be checked in the real game: the harness places it on a headless
 
 ## Tasks
 
-- [ ] Record the harness design in `docs/adr/0002-harness.md` (vanilla server + RCON recommended above).
-- [ ] Offline tests first: the EULA gate (missing file, `eula=false`, valid file; the harness never writes it), the RCON client against a fake server, the action-script parser, the report.
-- [ ] Failing `game` test for the timer scenario first.
-- [ ] Driver, action script format, report format.
-- [ ] Document in `docs/agent-rules.md` how to run the harness locally.
+- [x] Record the harness design in `docs/adr/0002-harness.md` (vanilla server + RCON recommended above).
+- [x] Offline tests first: the EULA gate (missing file, `eula=false`, valid file; the harness never writes it), the RCON client against a fake server, the action-script parser, the report.
+- [x] Failing `game` test for the timer scenario first (written; the owner's game run decides).
+- [x] Driver, action script format, report format.
+- [x] Document in `docs/agent-rules.md` how to run the harness locally.
 
 ## Acceptance criteria
 
