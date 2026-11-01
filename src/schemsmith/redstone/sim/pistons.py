@@ -150,8 +150,9 @@ _DESTROY_EXACT = frozenset(
 )
 _DESTROY_PATTERNS = re.compile(
     r"(torch|_button|_pressure_plate|_door|_sapling|_carpet|_sign|_banner|_head|_skull"
-    r"|candle|lantern|_coral|_coral_fan|_coral_wall_fan|shulker_box|amethyst_bud|_tulip"
-    r"|_mushroom|_roots|_fungus|_petals|_bush|eyeblossom)$"
+    r"|candle|_coral|_coral_fan|_coral_wall_fan|shulker_box|amethyst_bud|_tulip"
+    r"|_mushroom|_fungus|_petals|_bush|eyeblossom)$"
+    r"|^minecraft:(\w+_)?lantern$(?<!sea_lantern)|^minecraft:(crimson|warped)_roots$"
     r"|^minecraft:(dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower"
     r"|lily_of_the_valley|wither_rose|torchflower|sunflower|lilac|rose_bush|peony"
     r"|pitcher_plant|wildflowers|leaf_litter|short_dry_grass|tall_dry_grass|firefly_bush)$"

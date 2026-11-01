@@ -9,9 +9,10 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from schemsmith.core import Structure
+from schemsmith.core import BlockState, Structure
 from schemsmith.library import get_module
 from schemsmith.redstone.sim import SimResult, parse_script, simulate
+from schemsmith.redstone.sim.pistons import reaction
 
 from ..circuits import build
 
@@ -232,3 +233,16 @@ def test_piston_heavy_run_stays_fast() -> None:
     elapsed = time.perf_counter() - start
     assert r.count("piston_extend") == 14 * 20 and r.count("piston_retract") == 14 * 20
     assert elapsed < 1.0, f"{elapsed:.3f}s"
+
+
+def test_push_reactions_of_look_alikes() -> None:
+    def r(name: str) -> str:
+        return reaction(BlockState(f"minecraft:{name}"))
+
+    # full blocks whose names look like fragile ones
+    for name in ("sea_lantern", "mangrove_roots", "muddy_mangrove_roots", "red_mushroom_block"):
+        assert r(name) == "normal", name
+    for name in ("lantern", "soul_lantern", "crimson_roots", "brown_mushroom", "poppy"):
+        assert r(name) == "destroy", name
+    assert r("white_glazed_terracotta") == "push_only"
+    assert r("hopper") == "block" and r("obsidian") == "block"
