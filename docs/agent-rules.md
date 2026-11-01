@@ -68,17 +68,11 @@ Full text behind the golden rules in [AGENTS.md](../AGENTS.md).
 - Block states are written like Minecraft does: `minecraft:repeater[delay=1,facing=west]` with properties sorted by key.
 - Lint results use one type: `Diagnostic(rule_id, severity, pos, message, suggestion)`.
 
-## 11. Redstone facts that are easy to get wrong
+## 11. Minecraft knowledge
 
-The real game is the source of truth, not our simulator. When unsure, write a `game`-marked test.
+Redstone and building knowledge lives in project skills, loaded automatically by Claude Code and readable by any agent:
 
-- Repeater and comparator `facing` points to the **input** side; the output is the opposite side.
-- Hopper, dropper, dispenser and observer `facing` points to the **output / front** side.
-- A wall torch's `facing` points **away** from the block it is attached to.
-- Droppers, dispensers and pistons are **quasi-connected**: they also react to power at the position directly above them. A source that locks a hopper directly above a dropper therefore also powers the dropper.
-- A locked repeater **holds** its current output; locking does not turn it off.
-- A comparator in `subtract` mode with a side input of 15 outputs 0. That makes it a gate that cannot freeze on.
-- A copper bulb toggles on a rising edge and outputs power only through a comparator.
-- A playing jukebox emits a redstone signal, locking adjacent hoppers until the song ends.
-- A hopper moves one item per 8 game ticks.
-- Redstone wire shape (`north/south/east/west = side|up|none`) is recomputed by the game; a saved shape can be stale.
+- [`.claude/skills/minecraft-redstone/SKILL.md`](../.claude/skills/minecraft-redstone/SKILL.md): block state conventions (`facing`), power, quasi-connectivity, timing, containers, pistons, design patterns, review checklist. **Read it before phases 04, 07 and 08.**
+- [`.claude/skills/minecraft-building/SKILL.md`](../.claude/skills/minecraft-building/SKILL.md): creative builds, hiding redstone, minigame structure, survival-friendly delivery, plus [ideas.md](../.claude/skills/minecraft-building/ideas.md).
+
+The real game is the source of truth, not our simulator or these skills. When unsure, write a `game`-marked test, and fix the skill in the same PR when it turns out to be wrong.

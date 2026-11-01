@@ -11,7 +11,8 @@ This file is loaded into every agent session. Keep it short; the detail lives in
 | [docs/plans/_TEMPLATE.md](docs/plans/_TEMPLATE.md) | Template every phase file follows |
 | [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md) | Open decisions by ID: never resolve them yourself |
 | [docs/adr/](docs/adr/) | Architecture decisions (stack in 0001) |
-| [docs/agent-rules.md](docs/agent-rules.md) | Full golden rules, conventions, redstone facts |
+| [docs/agent-rules.md](docs/agent-rules.md) | Full golden rules, conventions |
+| [.claude/skills/](.claude/skills/) | Minecraft knowledge: `minecraft-redstone`, `minecraft-building` |
 
 ## Golden rules (read before editing anything)
 
@@ -52,6 +53,7 @@ uv run schemsmith-mcp            # from phase 05
 - **CLI / MCP server** → `src/schemsmith/cli/`, `src/schemsmith/mcp/`
 - **In-game harness** → `harness/`
 - **Regression schematics** → `fixtures/` (documented in `fixtures/README.md`)
+- **Minecraft knowledge (skills)** → `.claude/skills/`
 - **Plans** → `docs/plans/` · **Open questions** → `docs/OPEN-QUESTIONS.md` · **Decisions** → `docs/adr/` · **Rule detail** → `docs/agent-rules.md`
 
 ## Phases / plans
