@@ -26,7 +26,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [03-registry](active/03-registry.md): per-version block registry, `validate`. NOT STARTED · depends on: 02 · PR: — · blockers: — (uses defaults of OQ-2, OQ-4)
+- [03-registry](active/03-registry.md): per-version block registry, `validate`. IN PROGRESS · depends on: 02 · PR: #10 · blockers: registry generation needs network access to Mojang (see PR #10) (uses defaults of OQ-2, OQ-4)
 - [04-redstone-lint](active/04-redstone-lint.md): power graph, lint rules, `lint`/`trace`; catches both timer bugs. NOT STARTED · depends on: 02, 03 · PR: — · blockers: —
 - [05-mcp-cli](active/05-mcp-cli.md): MCP server with bounded tools, edit plans. NOT STARTED · depends on: 02, 03, 04 · PR: — · blockers: —
 - [06-harness](active/06-harness.md): in-game verification on a headless Fabric server. BLOCKED (OQ-1) · depends on: 02, 05 · PR: — · blockers: OQ-1

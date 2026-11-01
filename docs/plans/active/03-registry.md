@@ -100,4 +100,30 @@ git status --short                              # no .jar, no .mc-cache/
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+**Not finished: PR #10 is open, not merged.** Partial run on a fresh clone of `phase-03-registry` (commit 22357de), 2026-11-01:
+
+```text
+$ uv sync                        [exit 0]
+$ uv run ruff check .            All checks passed!            [exit 0]
+$ uv run ruff format --check .   88 files already formatted    [exit 0]
+$ uv run mypy                    Success: no issues found in 57 source files   [exit 0]
+$ uv run pytest
+SKIPPED [3] tests/registry/test_fixtures.py:57: generated registries are not committed yet (scripts/gen_registry.py needs network)
+SKIPPED [1] tests/registry/test_gen_registry.py:87: needs --run-network
+======================== 219 passed, 5 skipped in 7.80s ========================
+$ uv run schemsmith validate fixtures/timer_v3_fixed.litematic
+schemsmith validate: error: no block registries are installed; generate one with `uv run python scripts/gen_registry.py <mc-version>`
+[exit 2]   <- expected exit 1 with the mismatch; needs the generated registry
+$ uv run python scripts/gen_registry.py 26.3
+urllib.error.URLError: <urlopen error Tunnel connection failed: 403 Forbidden>
+[exit 1]   <- piston-meta.mojang.com is denied by the agent session's network policy
+$ git status --short             (clean: no .jar, no .mc-cache/)
+```
+
+Missing: A2 and A5 on real data, A3 (committed registries for 1.21.11 and 26.3 plus `history.json`). Everything else is implemented and tested offline with a hand-written mini registry (`tests/registry/data/`). To finish, on a machine with access to Mojang's servers and Java 21+:
+
+```bash
+uv run python scripts/gen_registry.py 1.21.11 26.3
+uv run python scripts/gen_registry.py --history 1.13 1.14 1.15 1.16 1.17 1.18 1.19 1.20 1.20.5 1.21 1.21.11 26.3
+uv run pytest && uv run schemsmith validate fixtures/timer_v3_fixed.litematic
+```
