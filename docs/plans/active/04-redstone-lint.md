@@ -1,6 +1,6 @@
 # Phase 04: Redstone power graph and linter
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-04-redstone-lint`
 
 ## Goal

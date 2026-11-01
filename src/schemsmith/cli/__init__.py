@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable, Sequence
 
 from schemsmith import __version__
-from schemsmith.cli import formats_cmds, registry_cmds
+from schemsmith.cli import formats_cmds, redstone_cmds, registry_cmds
 
 Handler = Callable[[argparse.Namespace], int]
 
@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
     formats_cmds.register(sub)
     registry_cmds.register(sub)
+    redstone_cmds.register(sub)
     return parser
 
 

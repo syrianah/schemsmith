@@ -12,7 +12,9 @@ import pytest
 
 from schemsmith.cli import main
 from schemsmith.core import Region, Structure
+from schemsmith.diagnostics import Diagnostic, Severity
 from schemsmith.formats import save_structure
+from schemsmith.redstone.lint import rules
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -172,3 +174,42 @@ def test_validate_clean_exit_zero(tmp_path: Path, capsys: pytest.CaptureFixture[
 def test_validate_without_registry(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["validate", str(FIX / "timer_v3_fixed.litematic"), "--mc-version", "0.0"]) == 2
     assert "gen_registry" in capsys.readouterr().err
+
+
+def test_lint_text_and_json(capsys: pytest.CaptureFixture[str]) -> None:
+    v1 = str(FIX / "timer_v1_qc_dropper.litematic")
+    assert main(["lint", v1]) == 0  # warnings only
+    out = capsys.readouterr().out
+    assert "qc-unintended-power at (12,1,1)" in out
+    assert main(["lint", v1, "--format", "json", "--rule", "qc-unintended-power"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    (d,) = data["diagnostics"]
+    assert set(d) >= {"rule_id", "severity", "pos", "message", "suggestion", "fix"}
+    assert d["pos"] == [12, 1, 1]
+
+
+def test_lint_mc_version_and_bad_rule(capsys: pytest.CaptureFixture[str]) -> None:
+    v3 = str(FIX / "timer_v3_fixed.litematic")
+    assert main(["lint", v3, "--mc-version", "26.3"]) == 0
+    assert "finding(s)" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        main(["lint", v3, "--rule", "nope"])
+
+
+def test_lint_exit_one_on_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(ctx: object) -> object:
+        yield Diagnostic("boom", Severity.ERROR, None, "x")
+
+    monkeypatch.setitem(rules.RULES, "boom", boom)
+    assert main(["lint", str(FIX / "timer_v3_fixed.litematic")]) == 1
+
+
+def test_trace(capsys: pytest.CaptureFixture[str]) -> None:
+    v1 = str(FIX / "timer_v1_qc_dropper.litematic")
+    assert main(["trace", v1, "12", "1", "1"]) == 0
+    out = capsys.readouterr().out
+    assert "redstone_torch[lit=true] [qc via (12,2,1)]" in out
+    assert main(["trace", v1, "12", "1", "1", "--format", "json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["pos"] == [12, 1, 1]
+    assert main(["trace", v1, "99", "1", "1"]) == 2
