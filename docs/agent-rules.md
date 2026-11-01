@@ -28,7 +28,10 @@ Full text behind the golden rules in [AGENTS.md](../AGENTS.md).
 ## 5. Git
 
 - Branch `phase-NN-slug` from the latest `main`. One PR titled `Phase NN: <title>`.
-- Never push to `main`, never merge, never force-push, never rewrite history.
+- Never push directly to `main`, never force-push, never rewrite history. All changes reach `main` through a PR.
+- **Merge your own PR** with `gh pr merge --merge --delete-branch` once every Verification command from your phase file has passed on the final commit and its output is pasted in the PR.
+- **Do not merge** if any Verification command failed or could not be run (for example `game` tests that need the owner's machine, or a step blocked by an OPEN question). Leave the PR open and say why in its description.
+- After merging, follow "After a merge" in `AGENTS.md`.
 - Small, logical commits in English.
 
 ## 6. Open questions

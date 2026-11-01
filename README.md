@@ -15,7 +15,7 @@ Two bugs it is meant to catch automatically, both found by hand in a real build 
 
 ## How this repo is built
 
-AI coding agents build schemsmith phase by phase. One phase = one agent = one pull request, reviewed and merged by the owner. Agents start at [AGENTS.md](AGENTS.md); the phases are in [docs/plans/](docs/plans/index.md).
+AI coding agents build schemsmith phase by phase. One phase = one agent = one pull request, merged by the agent once its verification passes. Agents start at [AGENTS.md](AGENTS.md); the phases are in [docs/plans/](docs/plans/index.md).
 
 ## License
 
