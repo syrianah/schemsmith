@@ -11,6 +11,7 @@ from schemsmith.core import Structure
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.redstone.graph import PowerGraph
 from schemsmith.redstone.lint.fixes import apply_fix
+from schemsmith.redstone.lint.placement import PLACEMENT_RULES
 from schemsmith.redstone.lint.rules import RULE_DOCS, RULES, LintContext
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
@@ -43,4 +44,12 @@ def lint_structure(
     return out
 
 
-__all__ = ["RULES", "RULE_DOCS", "SEVERITY_ORDER", "LintContext", "apply_fix", "lint_structure"]
+__all__ = [
+    "PLACEMENT_RULES",
+    "RULES",
+    "RULE_DOCS",
+    "SEVERITY_ORDER",
+    "LintContext",
+    "apply_fix",
+    "lint_structure",
+]

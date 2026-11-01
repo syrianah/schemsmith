@@ -141,7 +141,9 @@ def create_server(root: Path) -> MCPServer[Any]:
     def redstone_lint(
         path: str, rules: list[str] | None = None, page: int = 0, page_size: int | None = None
     ) -> dict[str, Any]:
-        """Redstone lint diagnostics; each may include a 'fix' edit plan for schematic_edit."""
+        """Redstone and block placement lint diagnostics (panes on curves, blocks on air,
+        falling blocks, missing door/bed halves...); each may include a 'fix' edit plan for
+        schematic_edit. Rules: docs/lint-rules.md."""
         return _wrap(tools.redstone_lint)(path, rules, page, page_size)
 
     @app.tool()

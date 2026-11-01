@@ -1,4 +1,5 @@
-"""Every module (default and edge parameters) validates and lints with no errors."""
+"""Every module (default and edge parameters) validates and lints with no findings,
+including the block placement rules (issue #21)."""
 
 from __future__ import annotations
 

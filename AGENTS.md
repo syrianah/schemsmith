@@ -37,7 +37,7 @@ uv run mypy                      # from phase 00
 uv run pytest                    # from phase 00
 uv run schemsmith --version      # from phase 00
 uv run python scripts/gen_registry.py <mc-version>   # from phase 03, needs network + Java
-uv run schemsmith lint FILE / trace FILE X Y Z       # from phase 04
+uv run schemsmith lint FILE / trace FILE X Y Z       # from phase 04 (rules: docs/lint-rules.md)
 uv run schemsmith edit FILE --plan plan.json [--apply]  # from phase 05
 uv run schemsmith-mcp --root DIR # from phase 05
 uv run schemsmith simulate FILE --script S.yaml       # from phase 07
