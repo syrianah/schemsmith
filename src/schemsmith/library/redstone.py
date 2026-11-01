@@ -535,8 +535,8 @@ register(
         "seven_segment",
         "redstone",
         "7-segment lamp display with one input per segment (levers on the back). "
-        "`DIGIT_SEGMENTS` lists which inputs to switch for each digit; a full BCD decoder "
-        "is tracked in issue #17.",
+        "`DIGIT_SEGMENTS` lists which inputs to switch for each digit; "
+        "`seven_segment_decoder` drives them from one-hot digit inputs.",
         [],
         _seven_segment,
         ports=lambda: {f"seg_{k}": (v[0][0], v[0][1], 2) for k, v in _LAMPS.items()},
@@ -551,5 +551,98 @@ register(
             ]
             + [{"at": 20, "pos": [_LAMPS["g"][0][0], _LAMPS["g"][0][1], 1], "lit": False}],
         },
+    )
+)
+
+
+# ------------------------------------------------------- 7-segment decoder
+
+SEGMENTS = "abcdefg"
+_DEC_DIGIT_Z0, _DEC_DIGIT_PITCH = 2, 4
+_DEC_SEG_X0, _DEC_SEG_PITCH = 4, 4
+_DEC_DIGIT_REPEATER_X = 12
+_DEC_SEG_REPEATER_Z = (10, 18, 26, 34, 42)
+_DEC_LINE = "minecraft:smooth_stone"
+
+
+def _dec_digit_z(d: int) -> int:
+    return _DEC_DIGIT_Z0 + _DEC_DIGIT_PITCH * d
+
+
+def _dec_seg_x(seg: str) -> int:
+    return _DEC_SEG_X0 + _DEC_SEG_PITCH * SEGMENTS.index(seg)
+
+
+_DEC_LAMP_Z = _DEC_SEG_REPEATER_Z[-1] + 1
+
+
+def _seven_segment_decoder() -> Builder:
+    """One-hot digit levers (0-9) -> diode matrix -> seven segment outputs.
+
+    Digit lines run east along X on the floor (y=1). Segment lines run south along Z
+    one level up (dust at y=3 on a smooth stone rail at y=2), crossing over the digit
+    lines without touching them (dust only powers the block under it, and a weakly
+    powered block does not power dust). Where digit d lights segment s, a tap carries
+    the signal up: a repeater south of the digit line (the diode, so a segment line
+    never feeds back into other digits), then dust climbing two steps east onto the
+    segment rail. Each segment line ends in a repeater and an output lamp.
+    """
+    b = Builder()
+    width = _dec_seg_x(SEGMENTS[-1]) + 2
+    base_floor(b, width, _DEC_LAMP_Z + 2)
+    last_tap_x = _dec_seg_x(SEGMENTS[-1]) - 2
+    for d in range(10):
+        z = _dec_digit_z(d)
+        b.set((0, 1, z), LEVER_FLOOR)
+        for x in range(1, last_tap_x + 1):
+            b.set((x, 1, z), rep("west") if x == _DEC_DIGIT_REPEATER_X else WIRE)
+        for seg in DIGIT_SEGMENTS[d]:
+            sx = _dec_seg_x(seg)
+            b.set((sx - 2, 1, z + 1), rep("north"))  # diode
+            b.set((sx - 2, 1, z + 2), WIRE)
+            b.set((sx - 1, 1, z + 2), _DEC_LINE)
+            b.set((sx - 1, 2, z + 2), WIRE)
+    for seg in SEGMENTS:
+        sx = _dec_seg_x(seg)
+        # the rail starts at the first tap, so no repeater waits for an input it never gets
+        first = min(_dec_digit_z(d) for d in range(10) if seg in DIGIT_SEGMENTS[d]) + 2
+        for z in range(first, _DEC_LAMP_Z + 1):
+            b.set((sx, 2, z), _DEC_LINE)
+            if z < _DEC_LAMP_Z:
+                b.set((sx, 3, z), rep("north") if z in _DEC_SEG_REPEATER_Z else WIRE)
+        b.set((sx, 3, _DEC_LAMP_Z), LAMP)
+    return b
+
+
+def _decoder_scenario() -> dict[str, Any]:
+    actions: list[dict[str, Any]] = []
+    expect: list[dict[str, Any]] = []
+    period = 40
+    for d in range(10):
+        t = 10 + period * d
+        lever = [0, 1, _dec_digit_z(d)]
+        actions.append({"at": t, "toggle": lever})
+        actions.append({"at": t + 25, "toggle": lever})
+        for seg in SEGMENTS:
+            pos = [_dec_seg_x(seg), 3, _DEC_LAMP_Z]
+            expect.append({"at": t + 20, "pos": pos, "lit": seg in DIGIT_SEGMENTS[d]})
+    return {"ticks": 10 + period * 10, "actions": actions, "expect": expect}
+
+
+register(
+    Module(
+        "seven_segment_decoder",
+        "redstone",
+        "Decoder for the 7-segment display: ten one-hot digit levers (0-9) light the "
+        "segment outputs `seg_a`..`seg_g` from `DIGIT_SEGMENTS` (diode matrix with "
+        "bridged crossings). Wire each output to the matching `seven_segment` input.",
+        [],
+        _seven_segment_decoder,
+        ports=lambda: {
+            **{f"digit_{d}": (0, 1, _dec_digit_z(d)) for d in range(10)},
+            **{f"seg_{s}": (_dec_seg_x(s), 3, _DEC_LAMP_Z) for s in SEGMENTS},
+        },
+        scenario=_decoder_scenario,
+        notes="Only one digit lever should be on at a time (one-hot input).",
     )
 )

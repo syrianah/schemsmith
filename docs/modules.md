@@ -105,11 +105,24 @@ Simulator scenario: 1 action(s), 2 check(s) over 76 gt.
 
 ### `seven_segment`
 
-7-segment lamp display with one input per segment (levers on the back). `DIGIT_SEGMENTS` lists which inputs to switch for each digit; a full BCD decoder is tracked in an issue.
+7-segment lamp display with one input per segment (levers on the back). `DIGIT_SEGMENTS` lists which inputs to switch for each digit; `seven_segment_decoder` drives them from one-hot digit inputs.
 
 Ports: `seg_a` (2, 7, 2), `seg_f` (1, 6, 2), `seg_b` (4, 6, 2), `seg_g` (2, 4, 2), `seg_e` (1, 3, 2), `seg_c` (4, 3, 2), `seg_d` (2, 1, 2).
 
 Simulator scenario: 3 action(s), 7 check(s) over 30 gt.
+
+### `seven_segment_decoder`
+
+Decoder for the 7-segment display: ten one-hot digit levers (0–9) light the segment outputs `seg_a`..`seg_g` according to `DIGIT_SEGMENTS`. It is a diode matrix, 30 × 4 × 45:
+- Digit lines run east on the floor (y=1).
+- Segment lines run south one level up (dust at y=3 on a smooth stone rail), crossing over the digit lines without touching them.
+- Where a digit lights a segment, a tap carries the signal up: a repeater (the diode) and dust climbing two steps onto the rail.
+
+Each segment line ends in a repeater and an output lamp. Wire each output to the matching `seven_segment` input. Turn on only one digit lever at a time.
+
+Ports: `digit_0` (0, 1, 2) … `digit_9` (0, 1, 38), every 4 blocks along Z. `seg_a` (4, 3, 43) … `seg_g` (28, 3, 43), every 4 blocks along X.
+
+Simulator scenario: 20 action(s), 70 check(s) over 410 gt. Each digit 0–9 is switched on in turn, and every segment is checked, lit or dark.
 
 ### `t_flip_flop`
 
@@ -209,6 +222,6 @@ Square stone-brick tower with a spiral stair, a roof floor with a hatch and batt
 
 ## Not yet in the library
 
-- A BCD/one-hot decoder for `seven_segment` (today: one input per segment, digit table in `DIGIT_SEGMENTS`): issue #17.
+- A 4-bit BCD input for `seven_segment_decoder` (today: one-hot levers), and a compact decoder wired straight into the display.
 - Piston block movement in the simulator (issue #16): `piston_door_2x2` and the farms are checked for piston *states* only.
 - Further ideas go into issues (see the phase 08 plan: the library can grow forever).
