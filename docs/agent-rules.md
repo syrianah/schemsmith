@@ -79,5 +79,5 @@ The real game is the source of truth, not our simulator or these skills. When un
 
 ### Simulator divergences
 
-The tick simulator (`schemsmith.redstone.sim`) is not the game. Its known simplifications are listed in `SIMPLIFICATIONS` (`src/schemsmith/redstone/sim/engine.py`) and printed with every result. Behaviour still to be confirmed in-game is tracked in issue #12. Until the phase 06 harness exists, the simulator is checked only against the timer scenarios in `fixtures/README.md` and the component timings in `tests/redstone/sim/test_components.py`.
+The tick simulator (`schemsmith.redstone.sim`) is not the game. Its known simplifications are listed in `SIMPLIFICATIONS` (`src/schemsmith/redstone/sim/engine.py`) and printed with every result. Behaviour still to be confirmed in-game is tracked in issue #12. Until the phase 06 harness exists, the simulator is checked only against the timer scenarios in `fixtures/README.md`, the component timings in `tests/redstone/sim/test_components.py` and the piston rules in `tests/redstone/sim/test_pistons.py` (issue #16).
 

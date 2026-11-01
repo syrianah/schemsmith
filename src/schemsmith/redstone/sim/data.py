@@ -15,6 +15,7 @@ OBSERVER_PULSE = 2
 LAMP_OFF_DELAY = 4
 DROPPER_DELAY = 4
 PISTON_DELAY = 2
+"""Game ticks between a piston starting to move and the moved blocks arriving."""
 BULB_DELAY = 0
 """Assumed: the copper bulb toggles during the neighbour update (see issue #12)."""
 STONE_BUTTON_TICKS = 20

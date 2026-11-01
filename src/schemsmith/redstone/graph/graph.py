@@ -130,7 +130,7 @@ class Trace:
 class PowerGraph:
     """Build with :meth:`PowerGraph.build`."""
 
-    def __init__(self, region: Region) -> None:
+    def __init__(self, region: Region | None, states: dict[Vec3, BlockState] | None = None) -> None:
         self.region = region
         self.edges: list[Edge] = []
         self.in_edges: dict[Node, list[Edge]] = defaultdict(list)
@@ -140,8 +140,11 @@ class PowerGraph:
         self.always_on: set[Node] = set()
         self._states: dict[Vec3, BlockState] = {}
         self._edge_set: set[Edge] = set()
-        for pos, state in region.blocks():
-            self._states[pos] = state
+        if states is not None:
+            self._states = {p: st for p, st in states.items() if not st.is_air}
+        elif region is not None:
+            for pos, state in region.blocks():
+                self._states[pos] = state
 
     # ------------------------------------------------------------------ access
 
@@ -171,7 +174,15 @@ class PowerGraph:
     @classmethod
     def build(cls, region: Region) -> PowerGraph:
         """Analyse ``region`` and return its power graph."""
-        g = cls(region)
+        return cls._analyse(cls(region))
+
+    @classmethod
+    def from_states(cls, states: dict[Vec3, BlockState]) -> PowerGraph:
+        """Power graph of a block map (used by the simulator after pistons move blocks)."""
+        return cls._analyse(cls(None, states))
+
+    @staticmethod
+    def _analyse(g: PowerGraph) -> PowerGraph:
         g._compute_wire_shapes()
         g._emissions()
         g._block_outputs()

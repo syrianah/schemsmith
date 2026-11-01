@@ -16,6 +16,7 @@ def _sugar_cane(length: int) -> Builder:
         b.set((x, 1, 0), WATER)
         b.set((x, 1, 1), "minecraft:sand")
         b.set((x, 2, 1), "minecraft:sugar_cane[age=0]")
+        b.set((x, 3, 1), "minecraft:sugar_cane[age=0]")  # grown: the piston harvests this one
         b.set((x, 1, 2), "minecraft:stone")
         b.set((x, 2, 2), "minecraft:stone")
         b.set((x, 3, 2), "minecraft:piston[extended=false,facing=north]")
@@ -30,8 +31,9 @@ def _kelp(height: int) -> Builder:
     b = Builder()
     base_floor(b, 4, 3)
     b.set((1, 1, 1), "minecraft:dirt")
-    b.set((1, 2, 1), "minecraft:kelp[age=0]")
-    for y in range(3, height + 2):
+    b.set((1, 2, 1), "minecraft:kelp_plant")
+    b.set((1, 3, 1), "minecraft:kelp[age=0]")  # grown: the piston cuts this one
+    for y in range(4, height + 2):
         b.set((1, y, 1), WATER)
     for y in range(1, height + 2):
         for p in ((1, y, 0), (1, y, 2), (2, y, 1)):
@@ -41,8 +43,8 @@ def _kelp(height: int) -> Builder:
     b.set((0, 3, 1), "minecraft:piston[extended=false,facing=east]")  # cuts the kelp above the base
     for y in range(4, height + 2):
         b.set((0, y, 1), "minecraft:glass")
-    b.set((3, 3, 1), "minecraft:lever[face=wall,facing=east,powered=false]")
-    b.set((2, 3, 1), "minecraft:stone")
+    # the lever sits on the piston's north face and powers it directly
+    b.set((0, 3, 0), "minecraft:lever[face=wall,facing=north,powered=false]")
     b.set((1, height + 2, 1), "minecraft:hopper[enabled=true,facing=east]")
     b.set((2, height + 2, 1), "minecraft:chest[facing=west,type=single,waterlogged=false]")
     return b
@@ -122,7 +124,18 @@ register(
         scenario=lambda length: {
             "ticks": 40,
             "actions": [{"at": 5, "toggle": [length, 4, 2]}],
-            "expect": [{"events": "piston_extend", "count": length}],
+            "expect": [
+                {"events": "piston_extend", "count": length},
+                {"events": "piston_destroy", "count": length},
+                *[
+                    {"at": 10, "pos": [x, 3, 1], "block": "minecraft:piston_head"}
+                    for x in range(length)
+                ],
+                *[
+                    {"at": 10, "pos": [x, 2, 1], "block": "minecraft:sugar_cane"}
+                    for x in range(length)
+                ],
+            ],
         },
     )
 )
@@ -135,7 +148,17 @@ register(
         "base when the lever is flipped, hopper + chest at the top.",
         [Param("height", int, 8, "water column height", 3, 20)],
         _kelp,
-        ports=lambda height: {"lever": (3, 3, 1)},
+        ports=lambda height: {"lever": (0, 3, 0)},
+        scenario=lambda height: {
+            "ticks": 30,
+            "actions": [{"at": 5, "toggle": [0, 3, 0]}, {"at": 15, "toggle": [0, 3, 0]}],
+            "expect": [
+                {"events": "piston_destroy", "count": 1},
+                {"at": 10, "pos": [1, 3, 1], "block": "minecraft:piston_head"},
+                {"at": 10, "pos": [1, 2, 1], "block": "minecraft:kelp_plant"},
+                {"at": 25, "pos": [0, 3, 1], "extended": False},
+            ],
+        },
     )
 )
 register(

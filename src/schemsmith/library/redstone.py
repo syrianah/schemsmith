@@ -479,9 +479,30 @@ register(
             "expect": [
                 {"events": "piston_extend", "count": 4},
                 {"events": "piston_retract", "count": 4},
+                # closed: the door blocks fill the doorway, the heads sit where they were
+                *[
+                    {"at": 30, "pos": [x, y, 1], "block": f"minecraft:{material}"}
+                    for x in (3, 4)
+                    for y in (1, 2)
+                ],
+                *[
+                    {"at": 30, "pos": [x, y, 1], "block": "minecraft:piston_head"}
+                    for x in (2, 5)
+                    for y in (1, 2)
+                ],
+                # open again: the sticky pistons pulled the blocks back
+                *[
+                    {"at": 70, "pos": [x, y, 1], "block": "minecraft:air"}
+                    for x in (3, 4)
+                    for y in (1, 2)
+                ],
+                *[
+                    {"at": 70, "pos": [x, y, 1], "block": f"minecraft:{material}"}
+                    for x in (2, 5)
+                    for y in (1, 2)
+                ],
             ],
         },
-        notes="The simulator models piston states, not block movement (issue #16).",
     )
 )
 
