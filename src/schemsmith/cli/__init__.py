@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable, Sequence
 
 from schemsmith import __version__
-from schemsmith.cli import formats_cmds
+from schemsmith.cli import formats_cmds, registry_cmds
 
 Handler = Callable[[argparse.Namespace], int]
 
@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"schemsmith {__version__}")
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
     formats_cmds.register(sub)
+    registry_cmds.register(sub)
     return parser
 
 
@@ -34,7 +35,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     handler: Handler = args.handler
     try:
         return handler(args)
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, LookupError) as exc:
         print(f"schemsmith {args.command}: error: {exc}", file=sys.stderr)
         return 2
 

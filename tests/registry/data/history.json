@@ -1,0 +1,40 @@
+{
+ "format": 1,
+ "versions": [
+  [
+   "1.18.2",
+   2975
+  ],
+  [
+   "1.20.4",
+   3700
+  ],
+  [
+   "1.21",
+   3953
+  ],
+  [
+   "mini-1.21.11",
+   4671
+  ]
+ ],
+ "introduced": {
+  "minecraft:air": "1.18.2",
+  "minecraft:stone": "1.18.2",
+  "minecraft:polished_andesite": "1.18.2",
+  "minecraft:glass": "1.18.2",
+  "minecraft:bell": "1.18.2",
+  "minecraft:comparator": "1.18.2",
+  "minecraft:dispenser": "1.18.2",
+  "minecraft:dropper": "1.18.2",
+  "minecraft:hopper": "1.18.2",
+  "minecraft:jukebox": "1.18.2",
+  "minecraft:redstone_lamp": "1.18.2",
+  "minecraft:redstone_torch": "1.18.2",
+  "minecraft:redstone_wall_torch": "1.18.2",
+  "minecraft:redstone_wire": "1.18.2",
+  "minecraft:repeater": "1.18.2",
+  "minecraft:stone_button": "1.18.2",
+  "minecraft:waxed_copper_bulb": "1.21"
+ }
+}

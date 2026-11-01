@@ -52,8 +52,9 @@ ignore = ["PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 mypy_path = "src"
+explicit_package_bases = true
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
