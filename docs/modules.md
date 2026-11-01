@@ -87,9 +87,7 @@ Simulator scenario: 3 action(s), 4 check(s) over 140 gt.
 
 Ports: `lever` (3, 1, 5), `doorway` (3, 1, 1).
 
-Simulator scenario: 2 action(s), 2 check(s) over 80 gt.
-
-Note: The simulator models piston states, not block movement (issue #16).
+Simulator scenario: 2 action(s), 18 check(s) over 80 gt. The door blocks move into the doorway when the lever is on, and the sticky pistons pull them back when it is off.
 
 ### `pulse_extender`
 
@@ -159,13 +157,15 @@ Ports: `input` (1, 4, 1), `output` (2, 1, 1).
 
 ### `kelp_farm`
 
-Kelp tube: glass column of water on dirt with kelp, a piston at y=3 cuts the kelp above the base when the lever is flipped, hopper + chest at the top.
+Kelp tube: glass column of water on dirt with kelp, a piston at y=3 cuts the kelp above the base when the lever (on the piston's north face) is flipped, hopper + chest at the top.
 
 | Parameter | Type | Default | Range | Meaning |
 |---|---|---|---|---|
 | `height` | int | `8` | 3..20 | water column height |
 
-Ports: `lever` (3, 3, 1).
+Ports: `lever` (0, 3, 0).
+
+Simulator scenario: 2 action(s), 4 check(s) over 30 gt. The piston destroys the grown kelp block and leaves the base.
 
 ### `pumpkin_farm`
 
@@ -186,7 +186,7 @@ Sugar cane row: water, sand, cane; pistons above push the second cane block when
 
 Ports: `lever` (8, 4, 2), `collect` (8, 1, 0).
 
-Simulator scenario: 1 action(s), 1 check(s) over 40 gt.
+Simulator scenario: 1 action(s), 18 check(s) over 40 gt (default length). Every piston destroys the grown cane block above the base, which stays.
 
 ## Buildings
 
@@ -223,5 +223,5 @@ Square stone-brick tower with a spiral stair, a roof floor with a hatch and batt
 ## Not yet in the library
 
 - A 4-bit BCD input for `seven_segment_decoder` (today: one-hot levers), and a compact decoder wired straight into the display.
-- Piston block movement in the simulator (issue #16): `piston_door_2x2` and the farms are checked for piston *states* only.
+- A simulator scenario for `pumpkin_farm`: crops do not grow in the simulator, so nothing triggers the observer.
 - Further ideas go into issues (see the phase 08 plan: the library can grow forever).

@@ -305,7 +305,7 @@ def test_piston_and_bell_and_note_block() -> None:
     kinds = [e.kind for e in r.events]
     assert "piston_extend" in kinds and "piston_retract" in kinds
     assert kinds.count("bell") == 1 and kinds.count("note") == 1
-    assert r.confidence == "low"
+    assert r.confidence == "medium"  # pistons move blocks since issue #16
 
 
 def test_jukebox_signal_locks_hopper_until_song_ends() -> None:

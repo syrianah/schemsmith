@@ -14,8 +14,12 @@ Order inside one game tick (as in Java Edition, simplified): player actions,
 scheduled block ticks (in scheduling order), then hoppers. Within a tick,
 neighbour updates are processed immediately in FIFO order.
 
-Simplifications (also in :data:`SIMPLIFICATIONS`): no entities; pistons only
-change their ``extended`` state (no block movement); droppers pick the first
+Pistons move blocks (:mod:`schemsmith.redstone.sim.pistons`): a piston starts
+moving in the tick its power changes, the moved blocks are ``moving_piston`` for
+:data:`~schemsmith.redstone.sim.data.PISTON_DELAY` game ticks and then arrive; the
+power graph is rebuilt after every change of the block layout.
+
+Simplifications (also in :data:`SIMPLIFICATIONS`): no entities; droppers pick the first
 non-empty slot (the game picks a random one); a block change updates every
 component within two blocks (the game's update shapes differ per block);
 the copper bulb toggles without delay; comparators reading jukeboxes output 15.
@@ -36,11 +40,13 @@ from schemsmith.redstone.graph import components as C
 from schemsmith.redstone.graph.directions import ALL, Dir, Vec3, step
 from schemsmith.redstone.graph.graph import Edge, PowerGraph
 from schemsmith.redstone.sim import data as D
+from schemsmith.redstone.sim import pistons as P
 from schemsmith.redstone.sim.script import Script, ScriptError
 
 SIMPLIFICATIONS = (
     "entities are not simulated (items dropped into the world are only reported)",
-    "pistons change their extended state but do not move blocks",
+    "pistons move blocks, but nothing rides along (no entities); 0-tick and BUD behaviour "
+    "are not modelled",
     "droppers/dispensers use their first non-empty slot (the game picks a random slot)",
     "a state change updates every component within 2 blocks (game update shapes differ)",
     "the copper bulb toggles during the neighbour update (no scheduled delay)",
@@ -54,6 +60,23 @@ PRIO_HOPPER = 2
 PRIO_PROBE = 9
 
 Slots = list[list[Any] | None]  # [item_id, count] or None
+
+MOVING = BlockState("minecraft:moving_piston")
+PISTONS = frozenset({"minecraft:piston", "minecraft:sticky_piston"})
+_KIND_BLOCK = {
+    "torch": C.is_torch,
+    "repeater": C.is_repeater,
+    "comparator": C.is_comparator,
+    "lamp_off": lambda s: s.name == "minecraft:redstone_lamp",
+    "button_release": C.is_button,
+    "observer_on": C.is_observer,
+    "observer_off": C.is_observer,
+    "piston": lambda s: s.name in PISTONS,
+    "dispense": lambda s: s.name in ("minecraft:dropper", "minecraft:dispenser"),
+    "jukebox_end": lambda s: s.name == "minecraft:jukebox",
+    "hopper": C.is_hopper,
+}
+"""Block a scheduled tick belongs to; a tick whose block was moved or destroyed is dropped."""
 
 
 @dataclass
@@ -193,6 +216,8 @@ class Simulator:
         self.probes: dict[int, dict[Vec3, dict[str, Any]]] = {}
         self._shells: dict[Vec3, list[Vec3]] = {}
         self.song_ticks = dict(script.song_ticks)
+        self.moving: dict[Vec3, dict[str, Any]] = {}
+        self._dirty: set[Vec3] = set()
         self._init()
 
     # ---------------------------------------------------------------- helpers
@@ -436,12 +461,34 @@ class Simulator:
 
     # -------------------------------------------------------------- the world
 
-    def _init(self) -> None:
+    def _build_observers(self) -> None:
+        self.observers = {}
         for p, s in self.states.items():
             if C.is_observer(s):
                 f = C.facing(s)
                 if f is not None:
                     self.observers.setdefault(step(p, f), []).append(p)
+
+    def _build_nets(self) -> None:
+        self.net_of = {}
+        self.nets = []
+        for p, s in self.states.items():
+            if C.is_wire(s) and p not in self.net_of:
+                net: list[Vec3] = []
+                stack = [p]
+                self.net_of[p] = len(self.nets)
+                while stack:
+                    w = stack.pop()
+                    net.append(w)
+                    for e in self.graph.out_edges[(w, "c")]:
+                        if e.kind == "wire" and e.dst not in self.net_of:
+                            self.net_of[e.dst] = len(self.nets)
+                            stack.append(e.dst)
+                self.nets.append(net)
+
+    def _init(self) -> None:
+        self._build_observers()
+        for p, s in self.states.items():
             slots = 1 if s.name == "minecraft:jukebox" else slots_for(s.name)
             if slots is not None:
                 self.inv[p] = self._read_inventory(p, slots)
@@ -463,20 +510,7 @@ class Simulator:
             self.inv[p] = stacks
             if self.state(p).name == "minecraft:jukebox" and stacks[0]:
                 self._set_flag(p, "has_record", True)
-        # wire networks
-        for p, s in self.states.items():
-            if C.is_wire(s) and p not in self.net_of:
-                net: list[Vec3] = []
-                stack = [p]
-                self.net_of[p] = len(self.nets)
-                while stack:
-                    w = stack.pop()
-                    net.append(w)
-                    for e in self.graph.out_edges[(w, "c")]:
-                        if e.kind == "wire" and e.dst not in self.net_of:
-                            self.net_of[e.dst] = len(self.nets)
-                            stack.append(e.dst)
-                self.nets.append(net)
+        self._build_nets()
         for p, s in self.states.items():
             if C.is_comparator(s):
                 self.comp_out[p] = 15 if s.get("powered") == "true" else 0
@@ -630,10 +664,18 @@ class Simulator:
                     if e.kind == "read":
                         self.notify([e.dst])
             self._set_flag(p, "powered", powered)
-        elif n in ("minecraft:piston", "minecraft:sticky_piston"):
-            want = self.power(p) > 0 or self.qc_powered(p)
-            if want != (s.get("extended") == "true"):
-                self.schedule(p, "piston", D.PISTON_DELAY)
+        elif n in PISTONS and (
+            p in self.moving or self._piston_want(p) != (s.get("extended") == "true")
+        ):
+            self.schedule(p, "piston", 0)  # a block event at the end of this tick
+
+    def _piston_want(self, p: Vec3) -> bool:
+        """Powered from any side but the front, or quasi-powered (``getNeighborSignal``)."""
+        front = step(p, C.facing(self.state(p)) or Dir.NORTH)
+        for e in self.graph.in_edges[(p, "c")]:
+            if e.kind in ("direct", "block") and e.src != front and self.edge_level(e) > 0:
+                return True
+        return self.qc_powered(p)
 
     def _torch_want(self, p: Vec3) -> bool:
         if self.burned.get(p, -1) > self.t:
@@ -647,10 +689,18 @@ class Simulator:
         self.t = t
         self.sched.discard((p, kind))
         self._tick(p, kind)
+        nxt = self.queue[0] if self.queue else None
+        if self._dirty and not (
+            nxt is not None and nxt[0] == self.t and nxt[4] in ("piston", "piston_done")
+        ):
+            self._flush_layout()  # one rebuild for a burst of piston moves in the same tick
         self._process()
 
     def _tick(self, p: Vec3, kind: str) -> None:
         s = self.state(p)
+        belongs = _KIND_BLOCK.get(kind)
+        if belongs is not None and not belongs(s):
+            return  # the block was moved or destroyed by a piston
         if kind == "torch":
             want = self._torch_want(p)
             if want != (s.get("lit") == "true"):
@@ -702,10 +752,11 @@ class Simulator:
             self._set_flag(p, "powered", False)
             self.changed(p)
         elif kind == "piston":
-            want = self.power(p) > 0 or self.qc_powered(p)
-            if self._set_flag(p, "extended", want):
-                self.event("piston_extend" if want else "piston_retract", p)
-                self.changed(p)
+            self._piston(p)
+        elif kind == "piston_done":
+            mv = self.moving.get(p)
+            if mv is not None and mv["done_at"] == self.t:
+                self._finish_move(p)
         elif kind == "dispense":
             self._dispense(p)
         elif kind == "jukebox_end":
@@ -723,6 +774,113 @@ class Simulator:
                 if e.get("at") == at and isinstance(e.get("pos"), list):
                     q = tuple(e["pos"])
                     self.probes[at][q] = self._snapshot(q)
+
+    # ---------------------------------------------------------------- pistons
+
+    def _piston(self, p: Vec3) -> None:
+        want = self._piston_want(p)
+        mv = self.moving.get(p)
+        spit = False
+        if mv is not None:
+            if not (mv["extending"] and not want):
+                return  # still moving; the arrival re-checks the power
+            # unpowered while still extending: the block is placed at once and left there
+            self._finish_move(p, recheck=False)
+            self.event("piston_spit", p)
+            spit = True
+        extended = self.state(p).get("extended") == "true"
+        if want and not extended:
+            self._extend(p)
+        elif not want and extended:
+            self._retract(p, pull=not spit)
+
+    def _remove(self, q: Vec3) -> None:
+        self.states.pop(q, None)
+        self.inv.pop(q, None)
+
+    def _start_move(
+        self, p: Vec3, extending: bool, placements: dict[Vec3, BlockState], touched: set[Vec3]
+    ) -> None:
+        for q in placements:
+            self.states[q] = MOVING
+        done_at = self.t + D.PISTON_DELAY
+        self.moving[p] = {"extending": extending, "placements": placements, "done_at": done_at}
+        self._seq += 1
+        heapq.heappush(self.queue, (done_at, PRIO_TICK, self._seq, p, "piston_done"))
+        self._layout_changed(touched | set(placements) | {p})
+
+    def _extend(self, p: Vec3) -> None:
+        s = self.state(p)
+        f = C.facing(s) or Dir.NORTH
+        mv = P.resolve(self.state, p, f, True)
+        if not mv.ok:
+            self.event("piston_blocked", p, mv.reason)
+            return
+        touched: set[Vec3] = set()
+        for q in mv.to_destroy:
+            self.event("piston_destroy", q, self.state(q).name)
+            self._remove(q)
+            touched.add(q)
+        moved = {q: self.state(q) for q in mv.to_push}
+        for q in moved:
+            self._remove(q)
+        touched |= set(moved)
+        placements = {step(q, f): st for q, st in moved.items()}
+        kind = "sticky" if s.name == "minecraft:sticky_piston" else "normal"
+        placements[step(p, f)] = BlockState.parse(
+            f"minecraft:piston_head[facing={f.key},short=false,type={kind}]"
+        )
+        self.set_state(p, s.with_properties(extended="true"))
+        self.event("piston_extend", p)
+        self._start_move(p, True, placements, touched)
+
+    def _retract(self, p: Vec3, pull: bool) -> None:
+        s = self.state(p)
+        f = C.facing(s) or Dir.NORTH
+        head = step(p, f)
+        touched = {head}
+        if self.state(head).name in ("minecraft:piston_head", MOVING.name):
+            self._remove(head)
+        placements: dict[Vec3, BlockState] = {}
+        if pull and s.name == "minecraft:sticky_piston":
+            mv = P.resolve(self.state, p, f, False)
+            if mv.ok and mv.to_push:
+                moved = {q: self.state(q) for q in mv.to_push}
+                for q in moved:
+                    self._remove(q)
+                touched |= set(moved)
+                placements = {step(q, f.opposite): st for q, st in moved.items()}
+        self.set_state(p, s.with_properties(extended="false"))
+        self.event("piston_retract", p)
+        self._start_move(p, False, placements, touched)
+
+    def _finish_move(self, p: Vec3, recheck: bool = True) -> None:
+        mv = self.moving.pop(p)
+        for q, st in mv["placements"].items():
+            if self.states.get(q) == MOVING:
+                self.states[q] = st
+        self._layout_changed(set(mv["placements"]))
+        if recheck:
+            self.notify([p])  # re-check the power once the graph is rebuilt
+
+    def _layout_changed(self, positions: set[Vec3]) -> None:
+        """Blocks appeared, moved or vanished (applied by :meth:`_flush_layout`)."""
+        self._dirty |= positions
+
+    def _flush_layout(self) -> None:
+        """Rebuild the power graph and update everything around the changed positions."""
+        positions, self._dirty = self._dirty, set()
+        self.graph = PowerGraph.from_states(self.states)
+        self._build_nets()
+        self._build_observers()
+        for q in positions:
+            for obs in self.observers.get(q, ()):
+                if not self._flag(obs, "powered"):
+                    self.schedule(obs, "observer_on", D.OBSERVER_DELAY)
+        for i in range(len(self.nets)):
+            self._recompute_net(i)
+        for q in sorted(positions):
+            self.changed(q)
 
     def _dispense(self, p: Vec3) -> None:
         s = self.state(p)
@@ -853,8 +1011,7 @@ class Simulator:
         result.timeline = self.timeline
         result.containers = {p: self._items(p) for p in self.inv}
         result.notes = list(SIMPLIFICATIONS)
-        kinds = {self.state(p).name for p in self.states}
-        result.confidence = "low" if any("piston" in k for k in kinds) else "medium"
+        result.confidence = "medium"
         result.updates = self.updates
         result.checks = self._checks()
         result.elapsed_s = time.perf_counter() - start
