@@ -134,7 +134,7 @@ def install_structure(
     """Write ``structure`` into ``world``'s datapack ``pack`` as ``namespace:name``."""
     world = Path(world)
     if not (world / "level.dat").is_file():
-        raise InstallError(f"{world} is not a Minecraft world folder (no level.dat)")
+        raise InstallError(f"{world.as_posix()} is not a Minecraft world folder (no level.dat)")
     if not _NAMESPACE_RE.fullmatch(namespace):
         raise InstallError(f"invalid namespace {namespace!r}: use a-z, 0-9, _ . -")
     if not _PATH_RE.fullmatch(name) or any(part in (".", "..") for part in name.split("/")):
@@ -158,7 +158,8 @@ def install_structure(
     notes: list[str] = []
     if target.exists() and not overwrite:
         raise FileExistsError(
-            f"{target} exists; pass --overwrite to replace it, or use a new --name. {CACHE_HINT}"
+            f"{target.as_posix()} exists; pass --overwrite to replace it, or use a new --name. "
+            f"{CACHE_HINT}"
         )
     if target.exists():
         notes.append(CACHE_HINT)
