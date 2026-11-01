@@ -357,8 +357,9 @@ class Compound(dict[str, "Tag"]):
 
     type_id: ClassVar[TagType] = TagType.COMPOUND
 
-    def __init__(self, items: Mapping[str, Tag] | Iterable[tuple[str, Tag]] = ()) -> None:
-        super().__init__(items)
+    def __init__(self, items: Mapping[str, object] | Iterable[tuple[str, object]] = ()) -> None:
+        # Accepts ``object`` so mixed dict literals type-check; values are checked at runtime.
+        super().__init__(items)  # type: ignore[arg-type]
         for key, value in self.items():
             if not isinstance(key, str):
                 raise TypeError(f"Compound keys must be str, got {key!r}")

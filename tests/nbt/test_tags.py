@@ -89,7 +89,7 @@ def test_compound_checks_and_getters() -> None:
     with pytest.raises(TypeError):
         c[1] = Int(1)  # type: ignore[index]
     with pytest.raises(TypeError):
-        Compound({"a": 1})  # type: ignore[arg-type]
+        Compound({"a": 1})
     assert c != {"s": String("v"), "c": Compound(), "l": List(TagType.END)}
 
 

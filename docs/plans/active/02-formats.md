@@ -1,6 +1,6 @@
 # Phase 02: Structure model and schematic formats
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS
 **Branch:** `phase-02-formats`
 
 ## Goal
