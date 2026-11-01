@@ -94,4 +94,31 @@ git grep -ni "eula=true" -- src harness          # must print nothing (docs and 
 
 ## Verification evidence (filled by the agent)
 
-_Empty until the phase is finished._
+Offline part, fresh clone of `phase-06-harness` at b9fb304 (2026-11-01). The `-m game --run-game` line is left for the owner's machine.
+
+```
+$ uv sync                      -> exit 0
+$ uv run ruff check .          -> All checks passed!
+$ uv run ruff format --check . -> 198 files already formatted
+$ uv run mypy                  -> Success: no issues found in 162 source files
+$ uv run pytest -q
+SKIPPED [12] tests/harness/test_game_cases.py:20: needs --run-game
+SKIPPED [5] tests/harness/test_timer.py: needs --run-game
+SKIPPED [1] tests/registry/test_gen_registry.py:137: needs --run-network
+761 passed, 19 skipped in 24.04s
+$ uv run pytest -q tests/harness -rs
+67 passed, 17 skipped in 5.41s
+$ git grep -ni "eula=true" -- src harness
+(no output, exit 1)
+$ uv run schemsmith verify fixtures/timer_v3_fixed.litematic --script fixtures/timer_start.yaml
+schemsmith verify: error: the Minecraft EULA has not been accepted: /root/.schemsmith/eula.txt is missing or does not set eula to true. Read https://aka.ms/MinecraftEULA; if you accept it, create that file yourself with one line: the word eula, an equals sign and the word true. schemsmith never creates it for you (see docs/agent-rules.md §12).
+exit 2   (the cloud agent has no EULA file and never creates one; no server was started)
+```
+
+| # | Status |
+|---|---|
+| A1 | `tests/harness/test_timer.py::test_v3_one_game`, `test_v3_three_games`, `test_v3_gate_closes_when_button_held` written; waiting for the owner's game run |
+| A2 | `test_v1_music_every_other_game`, `test_v2_gate_frozen_open` written; waiting for the owner's game run |
+| A3 | `git grep` above prints nothing; `tests/harness/test_eula_gate.py` (23 tests, including "never writes" and "no acceptance in src/harness") passes |
+
+To finish (owner): run `uv run pytest -m game --run-game tests/harness`, paste the output here, set the status to `DONE (PR #n, date)`, `git mv` this file to `completed/` with the index update, and merge.
