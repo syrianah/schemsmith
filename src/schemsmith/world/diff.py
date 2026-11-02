@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from schemsmith.core import BlockState, Structure
+from schemsmith.registry import Registry, RegistryError, select_registry
 from schemsmith.world.reader import AIRS, WorldReader, session_lock_held
 
 DEFAULT_LIMIT = 20
@@ -84,15 +85,26 @@ class DiffResult:
         }
 
 
-def same_block(expected: BlockState, found: BlockState, ignore_properties: bool) -> bool:
-    """Equal names (all airs are air) and, unless ignored, every property the schematic sets."""
+def same_block(
+    expected: BlockState,
+    found: BlockState,
+    ignore_properties: bool,
+    registry: Registry | None = None,
+) -> bool:
+    """Equal names (all airs are air) and, unless ignored, every property the schematic sets.
+
+    A world stores a block in its default state as a bare name (26.x palettes), so
+    properties the world leaves out are taken from ``registry``'s default state.
+    """
     if expected.name in AIRS and found.name in AIRS:
         return True
     if expected.name != found.name:
         return False
     if ignore_properties:
         return True
-    have = dict(found.properties)
+    info = registry.get(found.name) if registry is not None else None
+    have = dict(info.default) if info is not None else {}
+    have.update(found.properties)
     return all(have.get(k) == v for k, v in expected.properties)
 
 
@@ -112,6 +124,10 @@ def diff_world(
     """
     reader = WorldReader(world, dimension)
     res = DiffResult(at, dimension, lock_held=session_lock_held(reader.world))
+    try:
+        registry: Registry | None = select_registry(structure.data_version)
+    except RegistryError:
+        registry = None
     missing: set[tuple[int, int]] = set()
     for region in structure.regions:
         mc = region.min_corner
@@ -126,7 +142,7 @@ def diff_world(
                 res.ungenerated += 1
                 missing.add((wp[0] >> 4, wp[2] >> 4))
                 continue
-            if same_block(state, found, ignore_properties):
+            if same_block(state, found, ignore_properties, registry):
                 res.matched += 1
                 continue
             exp_s = state.name if ignore_properties else str(state)
