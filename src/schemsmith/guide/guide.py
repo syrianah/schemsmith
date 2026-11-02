@@ -144,6 +144,8 @@ def to_markdown(g: Guide) -> str:
     ]
     lines += [f"| {line.item} | {line.count} | {format_stacks(line)} |" for line in m.lines]
     lines.append("")
+    if m.water_line:
+        lines += [m.water_line + ".", ""]
     contents = _contents_lines(g)
     if contents:
         lines += ["## Put into containers", "", *[f"- {c}" for c in contents], ""]
@@ -200,6 +202,8 @@ def to_html(g: Guide) -> str:
         f"{m.shulker_boxes} shulker box(es).</p>",
         f"<table><tr><th>Item</th><th>Count</th><th>Stacks</th></tr>{rows}</table>",
     ]
+    if m.water_line:
+        parts.append(f"<p>{e(m.water_line)}.</p>")
     contents = _contents_lines(g)
     if contents:
         parts.append(

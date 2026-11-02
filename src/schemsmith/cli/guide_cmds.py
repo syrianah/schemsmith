@@ -68,6 +68,8 @@ def cmd_materials(args: argparse.Namespace) -> int:
     print(
         f"total: {m.total_items} items, {m.total_stacks} stacks, {m.shulker_boxes} shulker box(es)"
     )
+    if m.water_line:
+        print(m.water_line)
     for c in m.contents:
         print(f"put into {c.block} at {c.pos}: {format_contents(c)} ({c.source})")
     return 0

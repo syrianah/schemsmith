@@ -18,7 +18,7 @@ SHULKER_SLOTS = 27
 ITEM_FOR_BLOCK = {
     "minecraft:redstone_wire": "minecraft:redstone",
     "minecraft:redstone_wall_torch": "minecraft:redstone_torch",
-    "minecraft:wall_torch": "minecraft:torch",
+    "minecraft:wall_torch": "minecraft:torch",  # no prefix before _wall_
     "minecraft:soul_wall_torch": "minecraft:soul_torch",
     "minecraft:water": "minecraft:water_bucket",
     "minecraft:lava": "minecraft:lava_bucket",
@@ -56,6 +56,19 @@ NOT_ITEMS = frozenset(
         "minecraft:end_gateway",
     }
 )
+WALL_FORMS = (
+    "_wall_torch",
+    "_wall_sign",
+    "_wall_hanging_sign",
+    "_wall_banner",
+    "_wall_head",
+    "_wall_skull",
+    "_wall_fan",
+)
+"""Blocks placed by putting an item against a wall: ``oak_wall_sign`` is an ``oak_sign``."""
+WATER_ITEM = "minecraft:water_bucket"
+WATER_NOTE = "a bucket and an infinite source are enough"
+"""Water buckets come back, so water sources are listed apart from the items."""
 UNSTACKABLE = ("_bucket", "_bed", "_boat", "_minecart", "shulker_box", "_sword")
 
 
@@ -66,14 +79,8 @@ def item_for(state: BlockState) -> tuple[str, int] | None:
         return None
     if state.get("half") == "upper" or (n.endswith("_bed") and state.get("part") == "head"):
         return None  # doors, tall plants and beds are one item for two blocks
-    if n.endswith("_wall_sign"):
-        return n.replace("_wall_sign", "_sign"), 1
-    if n.endswith("_wall_hanging_sign"):
-        return n.replace("_wall_hanging_sign", "_hanging_sign"), 1
-    if n.endswith("_wall_banner"):
-        return n.replace("_wall_banner", "_banner"), 1
-    if n.endswith(("_wall_head", "_wall_skull")):
-        return n.replace("_wall_", "_"), 1
+    if n not in ITEM_FOR_BLOCK and n.endswith(WALL_FORMS):
+        return n.replace("_wall_", "_"), 1  # the wall form of a placeable item
     if n.endswith("_slab") and state.get("type") == "double":
         return n, 2
     if n == "minecraft:water" and state.get("level") not in (None, "0"):
@@ -183,6 +190,16 @@ class MaterialList:
 
     lines: list[MaterialLine] = field(default_factory=list)
     contents: list[ContainerContents] = field(default_factory=list)
+    water_sources: int = 0
+    """Water source blocks, bubble columns and waterlogged blocks (not in ``lines``)."""
+
+    @property
+    def water_line(self) -> str:
+        """``N water sources: a bucket and an infinite source are enough`` ('' if none)."""
+        if not self.water_sources:
+            return ""
+        noun = "water source" if self.water_sources == 1 else "water sources"
+        return f"{self.water_sources} {noun}: {WATER_NOTE}"
 
     @property
     def total_items(self) -> int:
@@ -207,6 +224,8 @@ class MaterialList:
             "total_stacks": self.total_stacks,
             "shulker_boxes": self.shulker_boxes,
             "container_contents": [c.to_dict() for c in self.contents],
+            "water_sources": self.water_sources,
+            "water_note": WATER_NOTE if self.water_sources else "",
         }
 
 
@@ -214,11 +233,17 @@ def material_list(structure: Structure, script: Script | None = None) -> Materia
     """Count items for every block; list container contents (schematic and script setup)."""
     counts: Counter[str] = Counter()
     contents: list[ContainerContents] = []
+    water = 0
     for region in structure.regions:
         for state, n in region.state_counts().items():
             it = item_for(state)
             if it is not None:
-                counts[it[0]] += it[1] * n
+                if it[0] == WATER_ITEM:
+                    water += it[1] * n
+                else:
+                    counts[it[0]] += it[1] * n
+            if state.get("waterlogged") == "true" and state.name != "minecraft:water":
+                water += n
         for pos, be in sorted(region.block_entities.items()):
             items: list[tuple[str, int]] = []
             raw = be.get("Items")
@@ -241,7 +266,7 @@ def material_list(structure: Structure, script: Script | None = None) -> Materia
                 merged[item] += c
             contents.append(ContainerContents(pos, block, sorted(merged.items()), "script"))
     lines = [MaterialLine(i, c) for i, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
-    return MaterialList(lines, contents)
+    return MaterialList(lines, contents, water)
 
 
 def format_stacks(line: MaterialLine) -> str:
