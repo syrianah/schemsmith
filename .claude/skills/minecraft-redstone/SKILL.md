@@ -75,7 +75,8 @@ Classic bug (from schemsmith's own `fixtures/timer_v1_qc_dropper.litematic`): a 
 - Push limit: **12 blocks**.
 - Immovable blocks include obsidian, crying obsidian, bedrock, end portal frame, extended pistons, and most blocks with a block entity (chests, furnaces, hoppers, droppers, dispensers, beacons, jukeboxes). Check before relying on moving them.
 - Slime and honey blocks drag neighbours; slime and honey do not stick to each other. Glazed terracotta does not stick to slime or honey.
-- A sticky piston given a very short pulse (≤ 1 gt) drops its block ("spitting").
+- A sticky piston given a short pulse (≤ 2 gt, e.g. an observer pulse) drops its block ("spitting"): the moved block finishes after the retraction's block event in the same tick. 3 gt pulls it back (the owner's 26.3 run, #38).
+- A piston powered by a click or a command between ticks starts moving in the next tick; powered during a tick (by a repeater, say), it starts at the end of that tick.
 - Pistons are quasi-connected (§3).
 
 ## 7. Design patterns worth reusing

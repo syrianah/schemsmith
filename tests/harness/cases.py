@@ -32,6 +32,8 @@ class Case:
     """(tick, position, key): the simulator's answer becomes the expectation."""
     setup: dict[str, Any] = field(default_factory=dict)
     issue: str = "#12"
+    note: str = ""
+    """What the case can and cannot show in the game, and what to look at when it fails."""
 
 
 def sim_expectations(case: Case) -> Script:
@@ -90,25 +92,31 @@ def cases() -> list[Case]:
     )
     out.append(
         Case(
-            "comparator reading a jukebox with a disc",
+            "comparator reading a jukebox fed by a hopper",
             _s(
                 {
+                    (1, 2, 1): "hopper[enabled=true,facing=down]",
                     (1, 1, 1): "jukebox[has_record=false]",
                     (2, 1, 1): "comparator[facing=west,mode=compare,powered=false]",
                     (3, 1, 1): LAMP,
                 }
             ),
-            10,
+            30,
             [],
-            [(5, (2, 1, 1), "output"), (5, (3, 1, 1), "lit")],
+            [(25, (1, 1, 1), "has_record"), (25, (2, 1, 1), "output"), (25, (3, 1, 1), "lit")],
             setup={
                 "containers": [
-                    {
-                        "pos": [1, 1, 1],
-                        "items": [{"id": "minecraft:music_disc_pigstep", "count": 1}],
-                    }
+                    {"pos": [1, 2, 1], "items": [{"id": "minecraft:music_disc_cat", "count": 1}]}
                 ]
             },
+            issue="#38",
+            note=(
+                "The disc goes in through a hopper, like the timer's dropper, because "
+                "/item replace may not start playback (#38: the first run read 0). "
+                "music_disc_cat should read 2 (the simulator's per-disc table). If "
+                "has_record is True but output is 0, run on the server: "
+                "data get block <comparator> OutputSignal."
+            ),
         )
     )
     push = {(1, 1, 1): LEVER, (2, 1, 1): "piston[extended=false,facing=east]", (3, 1, 1): "stone"}
@@ -123,7 +131,7 @@ def cases() -> list[Case]:
         )
     )
     sticky = {**push, (2, 1, 1): "sticky_piston[extended=false,facing=east]"}
-    for pulse in (1, 2):
+    for pulse in (1, 2, 3):
         out.append(
             Case(
                 f"sticky piston, {pulse} gt pulse",
@@ -153,22 +161,33 @@ def cases() -> list[Case]:
     )
     out.append(
         Case(
-            "playing jukebox next to the position above a dropper (QC)",
+            "playing jukebox next to the position above a dropper (QC, #12.1)",
             _s(
                 {
                     (2, 1, 2): "dropper[facing=east,triggered=false]",
                     (3, 2, 2): "jukebox[has_record=false]",
-                }
+                    (3, 3, 2): "hopper[enabled=true,facing=down]",
+                },
+                size=(9, 4, 9),
             ),
-            20,
+            40,
+            [{"at": 20, "update": [2, 0, 2]}],
             [
-                {
-                    "at": 5,
-                    "insert": [3, 2, 2],
-                    "items": [{"id": "minecraft:music_disc_cat", "count": 1}],
-                }
+                (15, (3, 2, 2), "has_record"),
+                (15, (2, 1, 2), "triggered"),
+                (22, (2, 1, 2), "triggered"),
             ],
-            [(10, (2, 1, 2), "triggered")],
+            setup={
+                "containers": [
+                    {"pos": [3, 3, 2], "items": [{"id": "minecraft:music_disc_cat", "count": 1}]}
+                ]
+            },
+            note=(
+                "A jukebox only updates its six neighbours, so the dropper (diagonal to it) "
+                "does not react when the music starts (tick 15, the first run's 'False'). "
+                "The update of the floor under the dropper at tick 20 shows whether a playing "
+                "jukebox quasi-powers it."
+            ),
         )
     )
     out.append(
@@ -177,7 +196,102 @@ def cases() -> list[Case]:
             _module("kelp_farm"),
             10,
             [{"at": 2, "toggle": [0, 3, 0]}],
-            [(6, (0, 3, 1), "extended")],
+            [
+                (6, (0, 3, 0), "block"),
+                (6, (0, 3, 0), "powered"),
+                (6, (0, 3, 1), "extended"),
+                (6, (1, 3, 1), "block"),
+            ],
+            issue="#38",
+            note=(
+                "The first run's piston stayed retracted. The probes say which step fails: "
+                "lever gone (cannot hang on a piston face), lever on but piston retracted "
+                "(no update reached it), or piston out but the kelp still there. The runner "
+                "now also replaces the piston the lever hangs on and puts it back."
+            ),
+        )
+    )
+    out.append(
+        Case(
+            "redstone block beside the position above a piston (QC, #12.2)",
+            _s(
+                {
+                    (2, 1, 2): "piston[extended=false,facing=north]",
+                    (3, 2, 2): "redstone_block",
+                }
+            ),
+            20,
+            [{"at": 10, "update": [2, 0, 2]}],
+            [(5, (2, 1, 2), "extended"), (15, (2, 1, 2), "extended")],
+            note=(
+                "/place template does no block updates, so the piston only notices the "
+                "quasi-power after the update of the floor under it at tick 10."
+            ),
+        )
+    )
+    out.append(
+        Case(
+            "dot and cross wire next to a lamp (#12.3)",
+            _s(
+                {
+                    # a lever in the floor powers the block under each wire strongly;
+                    # nothing beside the wires can change their saved shape
+                    (2, 0, 0): "lever[face=wall,facing=north,powered=false]",
+                    (2, 1, 1): "redstone_wire[east=none,north=none,power=0,south=none,west=none]",
+                    (3, 1, 1): LAMP,
+                    (2, 0, 4): "lever[face=wall,facing=north,powered=false]",
+                    (2, 1, 5): "redstone_wire[east=side,north=side,power=0,south=side,west=side]",
+                    (3, 1, 5): LAMP,
+                }
+            ),
+            10,
+            [{"at": 2, "toggle": [2, 0, 0]}, {"at": 2, "toggle": [2, 0, 4]}],
+            [
+                (5, (2, 1, 1), "power"),
+                (5, (3, 1, 1), "lit"),
+                (5, (2, 1, 5), "power"),
+                (5, (3, 1, 5), "lit"),
+            ],
+            note=(
+                "A dot (all none) powers nothing beside it, a cross powers all four sides. "
+                "Checks the game side only: a template keeps the saved shape. Whether "
+                "Litematica keeps it when pasting needs a check in Litematica."
+            ),
+        )
+    )
+    out.append(
+        Case(
+            "comparator side input from wire, repeater lock from wire (#12.6)",
+            _s(
+                {
+                    (1, 1, 1): "redstone_block",
+                    (2, 1, 1): "comparator[facing=west,mode=subtract,powered=false]",
+                    (3, 1, 1): LAMP,
+                    (2, 1, 3): LEVER,
+                    (2, 1, 2): "redstone_wire[east=none,north=side,power=0,south=side,west=none]",
+                    (1, 1, 5): LEVER,
+                    (2, 1, 5): "repeater[delay=1,facing=west,locked=false,powered=false]",
+                    (3, 1, 5): LAMP,
+                    (2, 1, 7): LEVER,
+                    (2, 1, 6): "redstone_wire[east=none,north=side,power=0,south=side,west=none]",
+                }
+            ),
+            20,
+            [
+                {"at": 2, "toggle": [2, 1, 3]},
+                {"at": 2, "toggle": [1, 1, 5]},
+                {"at": 2, "toggle": [2, 1, 7]},
+            ],
+            [
+                (8, (2, 1, 1), "output"),
+                (8, (3, 1, 1), "lit"),
+                (8, (2, 1, 5), "locked"),
+                (8, (3, 1, 5), "lit"),
+            ],
+            note=(
+                "Wire pointing into a comparator's side counts as a side input; wire into a "
+                "repeater's side does not lock it (only diodes do)."
+            ),
         )
     )
     return out

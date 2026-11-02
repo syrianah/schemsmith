@@ -7,11 +7,14 @@ setup:
       items: [{id: minecraft:cobblestone, count: 188}]
 actions:
   - {at: 20, press: [9, 2, 3]}          # START
-  - {at: 2950, hold: [9, 2, 9], for: 200}  # cube button held from before to after the end
+  # cube button held from well before to well after the end of the game (bell at 3042 in
+  # the simulator), so a small timing difference in the real game still lands inside it
+  - {at: 2700, hold: [9, 2, 9], for: 700}
 watch:
   - {pos: [10, 1, 9], label: cube gate}
   - {pos: [12, 1, 9], label: dispenser}
   - {pos: [12, 1, 7], label: bell}
 expect:
   - {events: bell, count: 1}
+  - {at: 2710, pos: [10, 1, 9], powered: true}    # the press reached the gate (open)
   - {at: 3500, pos: [10, 1, 9], powered: false}   # gate closed after the game

@@ -27,4 +27,4 @@ Action scripts for `schemsmith simulate` (format in `src/schemsmith/redstone/sim
 |---|---|---|
 | `timer_start.yaml` | One game: START at tick 20, a music disc in the dropper (12,1,1) | v3: bell rings once (~tick 3042), A back to 188, B empty, music plays once |
 | `timer_three_games.yaml` | Three games (START at 20, 3400, 6800) | v2/v3: music in every game. v1: music in games 1 and 3 only, because the end of the START pulse fires the dropper into the locked hopper |
-| `timer_button_held_at_end.yaml` | Cube button held from tick 2950 for 200 gt, over the end of the game | v3: gate (10,1,9) closed at tick 3500. v1/v2: locked repeater frozen on, gate still open |
+| `timer_button_held_at_end.yaml` | Cube button held from tick 2700 for 700 gt, well over the end of the game (bell at 3042 in the simulator); the gate must be open at 2710 | v3: gate (10,1,9) closed at tick 3500. v1/v2: locked repeater frozen on, gate still open |

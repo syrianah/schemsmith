@@ -98,7 +98,20 @@ uv run pytest -m game --run-game tests/harness
 ```
 
 - `verify` exits 0 (passed), 1 (failed) or 2 (could not run, e.g. no EULA file or no jar). `--keep` keeps `.mc-cache/harness/run-*` with `server.log`; `--format json` for tools.
-- Scripts are the simulator's (`simulate --script`). Supported in the game: `press`, `hold`, `toggle`, `insert`; expectations `events` (bell, note, disc_start, disc_end, piston_extend, piston_retract, bulb_on, bulb_off, press, toggle), `container`, and probes of `block`, `items`, `power`, `output` and the boolean states. Anything else is refused before the server starts.
+- Scripts are the simulator's (`simulate --script`). Supported in the game: `press`, `hold`, `toggle`, `insert`, `update` (replace a block and put it back, so its neighbours react); expectations `events` (bell, note, disc_start, disc_end, piston_extend, piston_retract, bulb_on, bulb_off, press, toggle), `container`, and probes of `block`, `items`, `power`, `output` and the boolean states. Anything else is refused before the server starts.
 - `tests/harness/test_game_cases.py` checks that the game gives the simulator's answers for the #12 timings. A failure means the simulator is wrong: fix `src/schemsmith/redstone/sim` and the `minecraft-redstone` skill.
 - Agents (cloud or local) never run `game` tests and never start a server.
+
+### Lessons from the owner's 26.3 runs (#38, #39)
+
+- **Timing:** measure only with `/tick freeze` + `/tick step`. Real-time sequences over RCON are racy for machines with clocks.
+- **Actions happen between ticks**, like a player's click. What they schedule (repeaters, buttons) counts from their tick. The block events they cause (pistons) run in the *next* level tick. The simulator follows this since #38.
+- **Pistons:** moving blocks finish in the block-entity phase, after that tick's block events. A sticky piston unpowered 2 gt after it started (an observer pulse) therefore still spits its block; 3 gt pulls it back.
+- **`/place template` does no block updates.** Redstone placed this way can misfire right after placement. Blocks that depend on neighbours, like scaffolding `distance`, settle over the next ticks, and scaffolding lines then send a delayed pulse of about 1 gt per block. Quasi-connected devices notice their power only after an update: use the `update` action.
+- **A jukebox updates only its six neighbours.** A dropper diagonal to it does not react when the music starts.
+- **`/setblock` of a lever or button does not update the block it hangs on.** Emulate a hand flip by also replacing that block and putting it back (the runner does, for full blocks and pistons).
+- **Jukeboxes:** feed discs through a hopper or dropper. `/item replace` may not start playback.
+- **Entities in a template** (hopper minecarts) are placed too: check their contents as well.
+- **Counting changed blocks:** `fill ... replace X` with the same block reports 0 changes. Counting needs a round trip (X → `structure_void` → X).
+- **Old item formats:** container items from before 1.20.5 can arrive empty (#39). `tests/harness/test_old_items_game.py` shows which shape breaks.
 

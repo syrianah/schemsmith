@@ -15,7 +15,11 @@ OBSERVER_PULSE = 2
 LAMP_OFF_DELAY = 4
 DROPPER_DELAY = 4
 PISTON_DELAY = 2
-"""Game ticks between a piston starting to move and the moved blocks arriving."""
+"""Game ticks between a piston starting to move (its block event) and the moved blocks
+arriving (in the block-entity phase of that later tick, after its block events)."""
+ACTION_BLOCK_EVENT_DELAY = 1
+"""A block event caused by an action (a player's click, a harness command) runs in the
+next level tick: actions happen between ticks (issue #38)."""
 BULB_DELAY = 0
 """Assumed: the copper bulb toggles during the neighbour update (see issue #12)."""
 STONE_BUTTON_TICKS = 20
@@ -67,6 +71,31 @@ DISC_SECONDS = {
 """Approximate song lengths (Minecraft Wiki); override with ``song_ticks`` in a script."""
 
 DISC_PREFIX = "minecraft:music_disc_"
+DISC_COMPARATOR = {
+    "13": 1,
+    "cat": 2,
+    "blocks": 3,
+    "chirp": 4,
+    "far": 5,
+    "mall": 6,
+    "mellohi": 7,
+    "stal": 8,
+    "strad": 9,
+    "ward": 10,
+    "11": 11,
+    "wait": 12,
+    "pigstep": 13,
+    "otherside": 14,
+    "5": 15,
+    "relic": 14,
+}
+"""Comparator output of a jukebox holding each disc (Minecraft Wiki, "Jukebox"). Discs
+not listed here read 15 (an approximation, listed in SIMPLIFICATIONS)."""
+
+
+def disc_comparator(item: str) -> int:
+    """Comparator output of a jukebox holding ``item``."""
+    return DISC_COMPARATOR.get(item.removeprefix(DISC_PREFIX), 15)
 
 
 def max_stack(item: str) -> int:

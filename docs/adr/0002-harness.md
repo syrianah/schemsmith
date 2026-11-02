@@ -30,4 +30,5 @@ A mod would need Gradle and Fabric Loom downloads, could not be built or tested 
 
 - Wall time is dominated by RCON round trips when a script counts events (one sample per tick). The 10,000-tick three-game timer is roughly 40k commands, under a few minutes on a local machine.
 - Inconsistent saved states are not settled by `/place template` (structure placement does not update neighbours). The simulator settles them before tick 0, so a schematic with stale states can disagree; `lint` reports such states (e.g. `wire-shape-inconsistent`).
+- Tick numbering after #38: harness actions run between ticks (after level tick t), and the simulator now does the same. Block events caused by an action run in tick t+1. The lessons from the owner's runs are in `docs/agent-rules.md` §12.
 - Pin the Minecraft version per run (`--mc-version`, default 26.3). Command syntax (`/tick`, `/place template`, game rule names) is checked against that version during the owner's game run.

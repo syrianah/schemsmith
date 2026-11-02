@@ -23,7 +23,10 @@ Actions use commands, since a dedicated server has no player:
   neighbours of the block the button sits on, so the runner briefly swaps that
   block for another solid block and back. That swap is skipped for blocks with a
   block entity and for non-conductive blocks (they carry no strong power).
-* ``insert``: ``/item replace`` into free slots.
+* ``update``: replace the block at the position and put it back, so its neighbours
+  react (the simulator notifies the same six neighbours).
+* ``insert``: ``/item replace`` into free slots. A disc put into a jukebox this way may
+  not start playback (issue #38): feed jukeboxes through a hopper or dropper instead.
 """
 
 from __future__ import annotations
@@ -82,6 +85,9 @@ EVENT_SOURCES: dict[str, tuple[Callable[[BlockState], bool], str, bool]] = {
 }
 """Event kind → (which blocks, which property, the value its change goes to)."""
 ACTION_EVENTS = {"press": ("press", "hold"), "toggle": ("toggle",)}
+_SWAPPABLE = frozenset({"minecraft:piston", "minecraft:sticky_piston", "minecraft:glass"})
+"""Non-conductive full blocks a lever or button can hang on: swapped like solid blocks."""
+_NO_TOUCH = frozenset({"minecraft:jukebox", "minecraft:spawner", "minecraft:beacon"})
 
 
 @dataclass
@@ -227,14 +233,30 @@ class GameRunner:
 
     # ---------------------------------------------------------------- actions
 
-    def touch(self, p: Vec3) -> None:
-        """Swap a solid block for another and back, so its neighbours get an update."""
+    def touch(self, p: Vec3) -> bool:
+        """Replace a block and put it back, so its neighbours get an update.
+
+        ``/setblock`` of a lever or button does not update the block it hangs on (the
+        owner's 26.3 lab runs), so a hand press is emulated by also replacing that block.
+        Full blocks are swapped with stone (or cobblestone), which keeps attached levers
+        and buttons alive; air goes through ``structure_void``. Block entities, extended
+        pistons and two-block blocks are left alone (replacing them would lose data).
+        Returns False when the block was left alone.
+        """
         s = self.local(p)
-        if s.is_air or not is_conductive(s) or slots_for(s.name) is not None:
-            return
-        other = "minecraft:stone" if s.name != "minecraft:stone" else "minecraft:cobblestone"
+        if slots_for(s.name) is not None or s.name in _NO_TOUCH:
+            return False
+        if s.get("extended") == "true" or s.get("half") in ("upper", "lower") or s.get("part"):
+            return False
+        if s.is_air:
+            other = "minecraft:structure_void"
+        elif is_conductive(s) or s.name in _SWAPPABLE:
+            other = "minecraft:stone" if s.name != "minecraft:stone" else "minecraft:cobblestone"
+        else:
+            return False
         self.cmd(f"setblock {self.at(p)} {other}")
         self.cmd(f"setblock {self.at(p)} {s}")
+        return True
 
     def set_powered(self, p: Vec3, on: bool) -> None:
         """Set a button/lever's ``powered`` and update like a real press."""
@@ -260,6 +282,10 @@ class GameRunner:
             self.levers[p] = on
             self.set_powered(p, on)
             self.event("toggle", p)
+        elif a.kind == "update":
+            if not self.touch(p):
+                raise ScriptError(f"update at {p}: use air or a full block without data ({s})")
+            self.event("update", p)
         elif a.kind == "insert":
             self.fill(p, a.items, keep=True)
 

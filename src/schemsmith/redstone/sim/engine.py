@@ -10,9 +10,12 @@ Time advances from one scheduled event to the next, so idle stretches cost
 nothing: a hopper clock with 188 items is 188 transfer events per direction,
 not 1504 ticks of polling.
 
-Order inside one game tick (as in Java Edition, simplified): player actions,
-scheduled block ticks (in scheduling order), then hoppers. Within a tick,
-neighbour updates are processed immediately in FIFO order.
+Order inside one game tick (as in Java Edition, simplified): scheduled block ticks
+and block events (in scheduling order), block entities (moving pistons finish, then
+hoppers), and finally player actions, which happen between ticks. What an action
+schedules counts from its tick, and the block events it causes (pistons) run in the
+next tick (issue #38). Within a tick, neighbour updates are processed immediately in
+FIFO order.
 
 Pistons move blocks (:mod:`schemsmith.redstone.sim.pistons`): a piston starts
 moving in the tick its power changes, the moved blocks are ``moving_piston`` for
@@ -48,15 +51,22 @@ SIMPLIFICATIONS = (
     "pistons move blocks, but nothing rides along (no entities); 0-tick and BUD behaviour "
     "are not modelled",
     "droppers/dispensers use their first non-empty slot (the game picks a random slot)",
-    "a state change updates every component within 2 blocks (game update shapes differ)",
+    "a state change updates every component within 2 blocks (a jukebox: only its 6 neighbours; "
+    "other game update shapes differ)",
     "the copper bulb toggles during the neighbour update (no scheduled delay)",
-    "comparators read 15 from a jukebox holding a disc; song lengths are approximate",
+    "comparators read each disc's value from a jukebox (15 for discs not in the table); "
+    "song lengths are approximate",
     "target blocks, daylight detectors, sculk sensors, tripwire and trapped chests emit nothing",
 )
 
-PRIO_ACTION = -1
 PRIO_TICK = 0
+PRIO_BLOCK_ENTITY = 1
+"""Block entities tick after scheduled ticks and block events (moving pistons finish here)."""
 PRIO_HOPPER = 2
+PRIO_ACTION = 8
+"""Actions run between ticks, after everything of their tick (a click, a harness command);
+what they schedule counts from that tick, and the block events they cause run in the next
+tick (issue #38)."""
 PRIO_PROBE = 9
 
 Slots = list[list[Any] | None]  # [item_id, count] or None
@@ -217,6 +227,7 @@ class Simulator:
         self._shells: dict[Vec3, list[Vec3]] = {}
         self.song_ticks = dict(script.song_ticks)
         self.moving: dict[Vec3, dict[str, Any]] = {}
+        self._in_action = False
         self._dirty: set[Vec3] = set()
         self._init()
 
@@ -276,6 +287,14 @@ class Simulator:
         self.notify(shell)
         self._record(p)
 
+    def changed_near(self, p: Vec3) -> None:
+        """Like :meth:`changed`, but only the six neighbours hear it (``updateNeighborsAt``).
+
+        A jukebox does this when its disc changes; components two blocks away, like a
+        dropper quasi-powered through the block above it, do not react (issue #38)."""
+        self.notify([p, *(step(p, d) for d in ALL)])
+        self._record(p)
+
     def _process(self) -> None:
         budget = D.MAX_UPDATES_PER_TICK
         while self.pending:
@@ -326,7 +345,8 @@ class Simulator:
         if C.is_bulb(s):
             return 15 if s.get("lit") == "true" else 0
         if s.name == "minecraft:jukebox":
-            return 15 if self._items(p) else 0
+            disc = next((sl[0] for sl in self.inv.get(p, []) if sl), None)
+            return D.disc_comparator(str(disc)) if disc else 0
         slots = self.inv.get(p)
         if not slots:
             return 0
@@ -436,7 +456,7 @@ class Simulator:
             self._set_flag(p, "has_record", True)
             self.schedule(p, "jukebox_end", length)
             self.event("disc_start", p, item)
-            self.changed(p)
+            self.changed_near(p)
         self._inventory_changed(p)
 
     def _inventory_changed(self, p: Vec3) -> None:
@@ -667,7 +687,10 @@ class Simulator:
         elif n in PISTONS and (
             p in self.moving or self._piston_want(p) != (s.get("extended") == "true")
         ):
-            self.schedule(p, "piston", 0)  # a block event at the end of this tick
+            # a block event: at the end of this tick, or of the next one when an action
+            # (between ticks) caused it
+            delay = D.ACTION_BLOCK_EVENT_DELAY if self._in_action else 0
+            self.schedule(p, "piston", delay)
 
     def _piston_want(self, p: Vec3) -> bool:
         """Powered from any side but the front, or quasi-powered (``getNeighborSignal``)."""
@@ -688,6 +711,7 @@ class Simulator:
         t, _prio, _seq, p, kind = heapq.heappop(self.queue)
         self.t = t
         self.sched.discard((p, kind))
+        self._in_action = kind.startswith("action:")
         self._tick(p, kind)
         nxt = self.queue[0] if self.queue else None
         if self._dirty and not (
@@ -695,6 +719,7 @@ class Simulator:
         ):
             self._flush_layout()  # one rebuild for a burst of piston moves in the same tick
         self._process()
+        self._in_action = False
 
     def _tick(self, p: Vec3, kind: str) -> None:
         s = self.state(p)
@@ -762,7 +787,7 @@ class Simulator:
         elif kind == "jukebox_end":
             if self.playing_until.get(p, -1) <= self.t:
                 self.event("disc_end", p)
-                self.changed(p)
+                self.changed_near(p)
                 self._inventory_changed(p)
         elif kind == "hopper":
             self._hopper(p)
@@ -806,7 +831,7 @@ class Simulator:
         done_at = self.t + D.PISTON_DELAY
         self.moving[p] = {"extending": extending, "placements": placements, "done_at": done_at}
         self._seq += 1
-        heapq.heappush(self.queue, (done_at, PRIO_TICK, self._seq, p, "piston_done"))
+        heapq.heappush(self.queue, (done_at, PRIO_BLOCK_ENTITY, self._seq, p, "piston_done"))
         self._layout_changed(touched | set(placements) | {p})
 
     def _extend(self, p: Vec3) -> None:
@@ -956,6 +981,9 @@ class Simulator:
             self.changed(p)
             self.changed(step(p, C.attached_dir(s) or Dir.DOWN))
             self.event("toggle", p)
+        elif a.kind == "update":
+            self.notify([step(p, d) for d in ALL])
+            self.event("update", p)
         elif a.kind == "insert":
             if p not in self.inv:
                 raise ScriptError(f"insert at {p}: not a container ({s})")
