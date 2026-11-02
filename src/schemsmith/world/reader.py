@@ -180,6 +180,19 @@ class Chunk:
     sections: dict[int, Section] = field(default_factory=dict)
     nbt: Compound = field(default_factory=Compound)
 
+    def block_entities(self) -> dict[tuple[int, int, int], Compound]:
+        """``block_entities`` by absolute world position (their ``x``, ``y``, ``z``)."""
+        out: dict[tuple[int, int, int], Compound] = {}
+        raw = self.nbt.get("block_entities")
+        for be in raw if isinstance(raw, List) else []:
+            if not isinstance(be, Compound):
+                continue
+            try:
+                out[(be.get_int("x"), be.get_int("y"), be.get_int("z"))] = be
+            except (KeyError, TypeError):
+                continue
+        return out
+
 
 def _read_chunk_bytes(region: Path, lx: int, lz: int, cx: int, cz: int) -> bytes | None:
     with region.open("rb") as fh:
@@ -236,6 +249,7 @@ class WorldReader:
         self.dimension = dimension
         self.region_dir = resolve_dimension(self.world, dimension)
         self._chunks: dict[tuple[int, int], Chunk] = {}
+        self._block_entities: dict[tuple[int, int], dict[tuple[int, int, int], Compound]] = {}
 
     def chunk(self, cx: int, cz: int) -> Chunk:
         """The chunk at chunk coordinates ``(cx, cz)``."""
@@ -288,6 +302,16 @@ class WorldReader:
         if sec is None:
             return AIR
         return sec.get(x & 15, y & 15, z & 15)
+
+    def block_entity_at(self, x: int, y: int, z: int) -> Compound | None:
+        """The world block entity at ``(x, y, z)``, as stored (with ``x``, ``y``, ``z``)."""
+        ch = self.chunk(x >> 4, z >> 4)
+        if ch.status is not ChunkStatus.FULL:
+            return None
+        key = (x >> 4, z >> 4)
+        if key not in self._block_entities:
+            self._block_entities[key] = ch.block_entities()
+        return self._block_entities[key].get((x, y, z))
 
 
 __all__ = [

@@ -46,6 +46,7 @@ uv run schemsmith new F / place F MODULE --at X Y Z   # from phase 08 (modules: 
 uv run schemsmith materials F / guide F / render F    # from phase 09
 uv run schemsmith install F --world W [--name N]      # datapack for /place template (#24)
 uv run schemsmith world diff W F --at X Y Z          # read-only: schematic vs. world
+uv run schemsmith world extract W --from .. --to .. -o F   # read-only: box -> schematic
 ```
 
 ## Where to change things

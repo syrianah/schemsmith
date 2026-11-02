@@ -80,7 +80,7 @@ It never writes to `<world>/generated/` (the game owns it; a file there broke a 
 
 ### Checking a world (read-only)
 
-`schemsmith world diff WORLD FILE --at X Y Z [--dimension overworld] [--ignore-properties] [--limit N]` reads the world's region files and compares every block of FILE (except structure void) with what is placed there, origin at `--at`. It never writes into the world; pause the game first so it has saved. See [docs/workflow.md](docs/workflow.md#6-check-what-is-really-in-the-world).
+`schemsmith world diff WORLD FILE --at X Y Z [--dimension overworld] [--ignore-properties] [--limit N]` reads the world's region files and compares every block of FILE (except structure void) with what is placed there, origin at `--at`. It never writes into the world; pause the game first so it has saved. `schemsmith world extract WORLD --from X Y Z --to X Y Z -o OUT [--dimension overworld] [--overwrite]` saves a box of the world (blocks and block entities) as `.litematic`, `.nbt` or `.schem`. See [docs/workflow.md](docs/workflow.md#6-check-what-is-really-in-the-world).
 
 ### Edit plans
 

@@ -6,15 +6,17 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from schemsmith.formats import load_structure
+from schemsmith.formats import load_structure, save_structure
+from schemsmith.world import session_lock_held
 from schemsmith.world.diff import DEFAULT_LIMIT, LOCK_NOTE, diff_world
+from schemsmith.world.extract import extract_box
 
 
 def register(sub: Any) -> None:
     """Add the ``world`` command group."""
     p = sub.add_parser(
         "world",
-        help="read a world (read-only): compare a schematic with what is placed",
+        help="read a world (read-only): diff a schematic against it, extract a box",
         description="Reads Anvil region files. Never writes into the world folder.",
     )
     wsub = p.add_subparsers(dest="world_command", metavar="SUBCOMMAND", required=True)
@@ -35,6 +37,50 @@ def register(sub: Any) -> None:
         "--limit", type=int, default=DEFAULT_LIMIT, help="positions to list (all are counted)"
     )
     d.set_defaults(handler=cmd_world_diff)
+    e = wsub.add_parser(
+        "extract",
+        help="save a box of a world as a schematic",
+        description=(
+            "Reads the blocks and block entities between two corners (inclusive) and writes "
+            ".litematic, .nbt or .schem. Never writes into the world folder."
+        ),
+    )
+    e.add_argument("world", help="world folder (contains level.dat)")
+    e.add_argument(
+        "--from", dest="corner_a", nargs=3, type=int, required=True, metavar=("X", "Y", "Z")
+    )
+    e.add_argument(
+        "--to", dest="corner_b", nargs=3, type=int, required=True, metavar=("X", "Y", "Z")
+    )
+    e.add_argument("-o", "--output", required=True, help="out.litematic, out.nbt or out.schem")
+    e.add_argument("--dimension", default="overworld", help="overworld, the_nether, the_end")
+    e.add_argument("--overwrite", action="store_true", help="replace an existing output file")
+    e.set_defaults(handler=cmd_world_extract)
+
+
+def cmd_world_extract(args: argparse.Namespace) -> int:
+    world = Path(args.world)
+    out = Path(args.output)
+    if out.resolve().is_relative_to(world.resolve()):
+        raise ValueError(
+            f"{out.as_posix()} is inside the world folder; world commands never write there"
+        )
+    if session_lock_held(world):
+        print(f"note: {LOCK_NOTE}")
+    s = extract_box(
+        world, tuple(args.corner_a), tuple(args.corner_b), dimension=args.dimension, name=out.stem
+    )
+    report = save_structure(s, out, overwrite=args.overwrite)
+    for note in report.notes:
+        print(f"note: {note}")
+    for item in report.dropped:
+        print(f"dropped: {item}")
+    r = s.regions[0]
+    print(
+        f"wrote {out.as_posix()} ({r.dims[0]}x{r.dims[1]}x{r.dims[2]}, {s.block_count()} blocks, "
+        f"{len(r.block_entities)} block entities; entities are not copied)"
+    )
+    return 0
 
 
 def cmd_world_diff(args: argparse.Namespace) -> int:
