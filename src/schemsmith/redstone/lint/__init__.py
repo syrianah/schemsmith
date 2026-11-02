@@ -14,9 +14,10 @@ from schemsmith.redstone.lint.fixes import apply_fix
 from schemsmith.redstone.lint.placement import PLACEMENT_RULES as _BASIC
 from schemsmith.redstone.lint.placement_state import PLACEMENT_STATE_RULES
 from schemsmith.redstone.lint.rules import RULE_DOCS, RULES, LintContext
+from schemsmith.redstone.lint.tnt import RULE_ID as _TNT
 
-PLACEMENT_RULES = (*_BASIC, *PLACEMENT_STATE_RULES)
-"""All block placement rules (issues #21 and #26)."""
+PLACEMENT_RULES = (*_BASIC, *PLACEMENT_STATE_RULES, _TNT)
+"""All block placement rules (issues #21 and #26, and ``place-ignites-tnt``)."""
 
 SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 

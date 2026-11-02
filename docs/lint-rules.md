@@ -43,3 +43,9 @@ Not covered, by design ([#26](https://github.com/syrianah/schemsmith/issues/26))
 - Item frames and paintings: these are entities, and the linter only reads blocks.
 - Waterlogged blocks are not reported by `fluid-flow`: they hold their water.
 - Plants with rarer soils (mangrove propagules, fungi, dry grass, dead bushes) are not in the table yet.
+
+## Placing with `/place template` (`src/schemsmith/redstone/lint/tnt.py`)
+
+| Rule | Severity | Finds | Fix |
+|---|---|---|---|
+| `place-ignites-tnt` | warning | TNT with, on one of its 6 sides, an observer (any facing or state), a component that powers it and is on in the saved state (powered lever/button/plate/repeater/comparator, lit redstone torch, wire with `power` > 0, redstone block, a detector with `power` > 0), or a block such a component powers. In the owner's 26.3 lab `/place template` did no block updates, yet such TNT was lit right after placing (a TNT duper). `install` prints the same warning. | Suggestion only: place without these blocks, then set them last. |
