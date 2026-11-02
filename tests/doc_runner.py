@@ -33,7 +33,7 @@ MAY_EXIT_1 = frozenset({"validate", "lint", "simulate", "world"})
 
 def matches(want: str, output: str) -> bool:
     """``want`` appears in one output line; ``...`` inside it skips any text."""
-    parts = [p for p in want.split("...") if p]
+    parts = [p for p in want.replace("\\", "/").split("...") if p]
     for line in output.replace("\\", "/").splitlines():
         at = 0
         for part in parts:
