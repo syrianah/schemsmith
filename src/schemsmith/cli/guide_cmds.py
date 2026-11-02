@@ -48,10 +48,10 @@ def cmd_render(args: argparse.Namespace) -> int:
         return 0
     out = Path(args.output) if args.output else Path(args.file).with_suffix(".png")
     if out.exists() and not args.overwrite:
-        raise FileExistsError(f"{out} exists; pass --overwrite to replace it")
+        raise FileExistsError(f"{out.as_posix()} exists; pass --overwrite to replace it")
     data = render_png(s, args.region)
     out.write_bytes(data)
-    print(f"wrote {out} ({len(data)} bytes)")
+    print(f"wrote {out.as_posix()} ({len(data)} bytes)")
     return 0
 
 
@@ -83,9 +83,9 @@ def cmd_guide(args: argparse.Namespace) -> int:
     if args.out:
         out = Path(args.out)
         if out.exists() and not args.overwrite:
-            raise FileExistsError(f"{out} exists; pass --overwrite to replace it")
+            raise FileExistsError(f"{out.as_posix()} exists; pass --overwrite to replace it")
         out.write_text(text, "utf-8")
-        print(f"wrote {out}")
+        print(f"wrote {out.as_posix()}")
     else:
         print(text)
     return 0
