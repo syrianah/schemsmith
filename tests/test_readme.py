@@ -37,13 +37,23 @@ def _commands(prefix: str) -> list[str]:
     return [c.strip() for c in inline + blocks if re.match(rf"(uv run )?{prefix}\b", c.strip())]
 
 
+def _options(p: argparse.ArgumentParser) -> set[str]:
+    """Option strings of ``p`` and of its nested subcommands (``world diff``)."""
+    out = {s for a in p._actions for s in a.option_strings}
+    for a in p._actions:
+        if isinstance(a, argparse._SubParsersAction):
+            for child in a.choices.values():
+                out |= _options(child)
+    return out
+
+
 def test_schemsmith_commands_parse() -> None:
     cmds = _commands("schemsmith ")
     assert len(cmds) >= 3
     parser = build_parser()
     for cmd in cmds:
         base = re.sub(r"\[[^\]]*\]", " ", cmd)
-        argv = shlex.split(base)
+        argv = ["0" if a in ("X", "Y", "Z", "N") else a for a in shlex.split(base)]
         argv = argv[argv.index("schemsmith") + 1 :]
         choices: dict[str, argparse.ArgumentParser] = parser._subparsers._group_actions[0].choices  # type: ignore[union-attr, assignment]
         if len(argv) == 1:  # a bare mention such as `schemsmith install`
@@ -51,8 +61,7 @@ def test_schemsmith_commands_parse() -> None:
             continue
         args, extra = parser.parse_known_args(argv)
         assert args.command is not None and not extra, cmd
-        sub = choices[args.command]
-        known = {s for a in sub._actions for s in a.option_strings}
+        known = _options(choices[args.command])
         for flag in re.findall(r"\[(--[\w-]+)", cmd):
             assert flag in known, f"{cmd}: {flag}"
 

@@ -65,6 +65,7 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 | `build_list_modules` / `build_place_module` | Module library: list, describe, place (rotated/mirrored) |
 | `render_preview` / `materials_list` / `build_guide` | Isometric PNG (no textures), material list, layer-by-layer guide |
 | `structure_install` | Put a schematic into a world datapack for `/place template` (world folder under the root) |
+| `world_diff` | Compare a schematic with the blocks really placed in a world (read-only) |
 
 ### Installing into a world (`/place template`)
 
@@ -76,6 +77,10 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 ```
 
 It never writes to `<world>/generated/` (the game owns it; a file there broke a world upgrade). It prints the commands to run in the game (`/reload`, then `/place template ns:name ~ ~ ~`), with a y offset when the schematic origin sits above its lowest block (or `--ground-y`). The data pack format is known for 26.3 (121); for other releases pass `--pack-format` (`pack_version.data_major` in the server jar's `version.json`). An existing structure is replaced only with `--overwrite`, and the game caches templates, so after a change install under a new `--name` or rejoin the world.
+
+### Checking a world (read-only)
+
+`schemsmith world diff WORLD FILE --at X Y Z [--dimension overworld] [--ignore-properties] [--limit N]` reads the world's region files and compares every block of FILE (except structure void) with what is placed there, origin at `--at`. It never writes into the world; pause the game first so it has saved. See [docs/workflow.md](docs/workflow.md#6-check-what-is-really-in-the-world).
 
 ### Edit plans
 
