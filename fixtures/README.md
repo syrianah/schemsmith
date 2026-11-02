@@ -33,6 +33,10 @@ Action scripts for `schemsmith simulate` (format in `src/schemsmith/redstone/sim
 | `timer_three_games.yaml` | Three games (START at 20, 3400, 6800) | v2/v3: music in every game. v1: music in games 1 and 3 only, because the end of the START pulse fires the dropper into the locked hopper. Every version: bell off 100 gt after each START (the round runs) |
 | `timer_button_held_at_end.yaml` | Cube button held from tick 2700 for 700 gt, well over the end of the game (bell at 3042 in the simulator); the gate must be open at 2710 | v3: gate (10,1,9) closed at tick 3500. v1/v2: locked repeater frozen on, gate still open. Every version: bell powered at 0 (idle after placing), bulb lit and bell off at 120 (the round runs) |
 
-## Empty demo world (`demo_world/`)
+## Demo world (`demo_world/`)
 
-A world folder with only a synthetic `level.dat` (written by schemsmith's NBT writer: `Data.LevelName` and `Data.DataVersion`, nothing else). It exists so the README's five-minute tour can run `schemsmith install ... --dry-run`, which needs a folder with `level.dat`. It is not a playable world. A dry run writes nothing into it.
+A tiny synthetic world, written by `scripts/make_demo_world.py`: a `level.dat` with only `Data.LevelName` and `Data.DataVersion`, and one 26.x region file (`dimensions/minecraft/overworld/region/r.0.0.mca`, chunk (0, 0)) holding the v3 timer at (0, -60, 0), except the cube gate (10, 1, 9), which is the v2 locked repeater. It is not a playable world. The docs use it for `install --dry-run` (which writes nothing) and for `world diff` (one difference) and `world extract`.
+
+## Edit plan (`timer_v1_fix_gate.json`)
+
+Replaces the v1/v2 gate repeater at (10, 1, 9) with the subtract comparator of v3. Used by the `edit` example in [docs/cli.md](../docs/cli.md).

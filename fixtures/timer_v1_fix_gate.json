@@ -1,0 +1,3 @@
+{"region": null, "edits": [
+  {"op": "set", "pos": [10, 1, 9], "state": "minecraft:comparator[facing=west,mode=subtract,powered=false]"}
+]}
