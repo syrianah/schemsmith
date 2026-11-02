@@ -20,9 +20,16 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from schemsmith.core.structure import Region, Structure, Vec3
 from schemsmith.nbt import Compound, String
+
+if TYPE_CHECKING:  # structure.py imports this module (Region.prune_block_entities)
+    from schemsmith.core.structure import Region, Structure
+
+Vec3 = tuple[int, int, int]
+ORPHAN_RULE = "orphan-block-entity"
+MAX_LISTED = 5
 
 _COLORS = (
     "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
@@ -130,6 +137,78 @@ def is_vanilla(block: str) -> bool:
     return block.split("[", 1)[0].rpartition(":")[0] in ("", "minecraft")
 
 
+def holds_block_entity(block: str) -> bool | None:
+    """True when the block holds a block entity, False when a vanilla block cannot,
+    None for a block schemsmith does not know (a mod's): never treated as an orphan."""
+    if block_entity_id(block) is not None:
+        return True
+    return False if is_vanilla(block) else None
+
+
+def orphans_in(region: Region) -> Iterator[tuple[Vec3, str]]:
+    """``(local pos, block)`` of block entities whose block cannot hold one.
+
+    A position outside the region counts too (its block is reported as ``""``).
+    """
+    for pos in sorted(region.block_entities):
+        if not region.contains(*pos):
+            yield pos, ""
+            continue
+        block = region.get_block(*pos).name
+        if holds_block_entity(block) is False:
+            yield pos, block
+
+
+@dataclass(frozen=True)
+class Orphan:
+    """A block entity left at a block that cannot hold one (structure coordinates)."""
+
+    pos: Vec3
+    block: str
+    block_entity_id: str
+    """Its own ``id``, or ``""`` when it has none."""
+
+
+def find_orphan_block_entities(structure: Structure) -> list[Orphan]:
+    """Every orphan block entity of the structure."""
+    out: list[Orphan] = []
+    for region in structure.regions:
+        mc = region.min_corner
+        for (x, y, z), block in orphans_in(region):
+            v = region.block_entities[(x, y, z)].get("id")
+            out.append(
+                Orphan(
+                    (mc[0] + x, mc[1] + y, mc[2] + z),
+                    block or "outside the region",
+                    v.value if isinstance(v, String) else "",
+                )
+            )
+    return out
+
+
+ORPHAN_HINT = (
+    "Region.set_block keeps the block entity of the block it replaces; drop the leftovers "
+    "with Region.prune_block_entities() (Python) or put the container back"
+)
+
+
+def orphan_warning(orphans: list[Orphan]) -> str:
+    """The ``orphan-block-entity`` message ('' if none)."""
+    if not orphans:
+        return ""
+    listed = ", ".join(
+        f"({o.pos[0]},{o.pos[1]},{o.pos[2]}) {o.block.removeprefix('minecraft:')}"
+        for o in orphans[:MAX_LISTED]
+    )
+    if len(orphans) > MAX_LISTED:
+        listed += f" and {len(orphans) - MAX_LISTED} more"
+    noun = "block entity" if len(orphans) == 1 else "block entities"
+    return (
+        f"{len(orphans)} {noun} at blocks that cannot hold one: {listed}; the game ignores "
+        "them, but their old contents still show up in tools that read the file"
+    )
+
+
 def with_block_entity_id(nbt: Compound, block: str) -> Compound:
     """``nbt`` itself when it has an ``id`` (or none can be inferred), else a copy with one."""
     if "id" in nbt:
@@ -174,11 +253,18 @@ def filled_ids_note(structure: Structure) -> str:
 __all__ = [
     "EXACT",
     "NOT_BLOCK_ENTITIES",
+    "ORPHAN_HINT",
+    "ORPHAN_RULE",
     "SUFFIXES",
     "FilledId",
+    "Orphan",
     "block_entity_id",
     "filled_ids_note",
+    "find_orphan_block_entities",
+    "holds_block_entity",
     "is_vanilla",
     "missing_ids",
+    "orphan_warning",
+    "orphans_in",
     "with_block_entity_id",
 ]

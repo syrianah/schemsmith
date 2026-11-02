@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from schemsmith.core.block_entities import block_entity_id
+from schemsmith.core.block_entities import block_entity_id, holds_block_entity
 from schemsmith.core.structure import Structure
 from schemsmith.nbt import Compound, List, String, Tag
 
@@ -80,15 +80,21 @@ def find_old_container_items(structure: Structure) -> list[OldItem]:
     """Old-format container items the game cannot upgrade (structure coordinates).
 
     Items are at risk only when their container has no ``id`` and none can be
-    inferred from the block (or, for an entity, when it has no ``id``).
+    inferred from the block (or, for an entity, when it has no ``id``). Orphan
+    block entities (at a block that cannot hold one) are left to
+    ``orphan-block-entity``.
     """
     out: list[OldItem] = []
     for region in structure.regions:
         mc = region.min_corner
         for (x, y, z), be in sorted(region.block_entities.items()):
-            block = region.get_block(x, y, z).name if region.contains(x, y, z) else "?"
+            if not region.contains(x, y, z):
+                continue  # an orphan outside the region (orphan-block-entity)
+            block = region.get_block(x, y, z).name
             if "id" in be or block_entity_id(block) is not None:
                 continue
+            if holds_block_entity(block) is False:
+                continue  # an orphan: the game ignores it (orphan-block-entity)
             for item in _walk(be):
                 out.append(OldItem((mc[0] + x, mc[1] + y, mc[2] + z), _id(item, "?"), block))
         for e in region.entities:
