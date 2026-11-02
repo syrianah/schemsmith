@@ -142,4 +142,35 @@ $ git grep -ni "eula=true" -- src harness
 (no output, exit 1)
 ```
 
+Third offline round after the owner's second game run (#38: 17 passed, 5 failed). Fresh clone of `phase-06-harness` at 1ff73b3 (2026-11-02), with `main` merged in (PRs #42 to #48):
+
+```
+$ uv sync                      -> exit 0
+$ uv run ruff check .          -> All checks passed!
+$ uv run ruff format --check . -> 222 files already formatted
+$ uv run mypy                  -> Success: no issues found in 186 source files
+$ uv run pytest -q
+SKIPPED [16] tests/harness/test_game_cases.py:20: needs --run-game
+SKIPPED [2] tests/harness/test_old_items_game.py: needs --run-game
+SKIPPED [5] tests/harness/test_timer.py: needs --run-game
+SKIPPED [2] tests/harness/test_tnt_game.py: needs --run-game
+SKIPPED [1] tests/registry/test_gen_registry.py:137: needs --run-network
+923 passed, 27 skipped in 27.47s
+$ uv run pytest -q tests/harness -rs
+83 passed, 25 skipped in 7.34s
+$ git grep -ni "eula=true" -- src harness
+(no output, exit 1)
+```
+
+What changed for the five failures (details in `tests/harness/cases.py` notes and the `test_timer.py` docstring):
+
+| Failure | Cause found | Change |
+|---|---|---|
+| comparator reading a hopper-fed jukebox (flaky) | the hopper's timing vs the fixed probe tick | the game run waits until the hopper is empty before tick 0 (`wait_empty`, at most `MAX_WAIT_TICKS`) |
+| kelp lever on the piston face | the runner replaced the piston the lever hangs on | a non-conductive support is never swapped; another neighbour of it is. Probes at 2..6 separate a harness pop from a lever dropped by the extending piston |
+| QC redstone block beside a piston (#12.2) | a piston checks its power when placed: the template extended it, no harness step involved | the power now comes from a lever whose updates cannot reach the piston; the simulator updates only the 6+6 neighbours of a lever/button |
+| timer v2 / v3 "button held" | the bell rang at t=64 and the v2 gate was unlocked at t=0, before START: not the 2700..3400 hold. Not decidable from code | checks at t=0 (idle and armed) and t=120 (round running) in all timer scripts; timelines from the settle ticks; the first tick where game and simulator differ is printed |
+
+New game cases: TNT next to an observer placed by `/place template` vs set last (`test_tnt_game.py`), and the #39 chest without block-entity id placed raw vs through the writer (`test_old_items_game.py`).
+
 To finish (owner): run `uv run pytest -m game --run-game tests/harness`, paste the output here, set the status to `DONE (PR #n, date)`, `git mv` this file to `completed/` with the index update, and merge.
