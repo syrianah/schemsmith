@@ -1,6 +1,6 @@
 # Phase 06: In-game verification harness
 
-**Status:** IN PROGRESS
+**Status:** DONE (PR #37, 2026-11-02)
 **Branch:** `phase-06-harness`
 
 ## Goal
@@ -73,11 +73,11 @@ git grep -ni "eula=true" -- src harness          # must print nothing (docs and 
 
 ## Definition of Done
 
-- [ ] All tests green locally (including `game` tests on the owner's machine); verification output pasted
-- [ ] No secrets, no Mojang files, no EULA acceptance committed
-- [ ] Status set to `DONE (PR #n, YYYY-MM-DD)`
-- [ ] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
-- [ ] PR `Phase 06: In-game verification harness` open with the offline verification output. **The cloud agent does not merge this PR:** it cannot run the `game` tests. The owner's local session runs `uv run pytest -m game --run-game tests/harness`, pastes the output, finishes the evidence/status/move commit and merges.
+- [x] All tests green locally (including `game` tests on the owner's machine); verification output pasted
+- [x] No secrets, no Mojang files, no EULA acceptance committed
+- [x] Status set to `DONE (PR #n, YYYY-MM-DD)`
+- [x] File moved with `git mv` to `docs/plans/completed/` and `docs/plans/index.md` updated **in the same commit**
+- [x] PR `Phase 06: In-game verification harness` open with the offline verification output. **The cloud agent does not merge this PR:** it cannot run the `game` tests. The owner's local session runs `uv run pytest -m game --run-game tests/harness`, pastes the output, finishes the evidence/status/move commit and merges.
 
 ## Risks / open questions
 
@@ -167,10 +167,27 @@ What changed for the five failures (details in `tests/harness/cases.py` notes an
 | Failure | Cause found | Change |
 |---|---|---|
 | comparator reading a hopper-fed jukebox (flaky) | the hopper's timing vs the fixed probe tick | the game run waits until the hopper is empty before tick 0 (`wait_empty`, at most `MAX_WAIT_TICKS`) |
-| kelp lever on the piston face | the runner replaced the piston the lever hangs on | a non-conductive support is never swapped; another neighbour of it is. Probes at 2..6 separate a harness pop from a lever dropped by the extending piston |
+| kelp lever on the piston face | run 2: the runner replaced the piston the lever hangs on; run 3: the game itself pops a lever on a piston's side when the piston extends (lab, per tick) | a non-conductive support is never swapped; the `kelp_farm` module stands the lever on stone beside the piston (#51) |
 | QC redstone block beside a piston (#12.2) | a piston checks its power when placed: the template extended it, no harness step involved | the power now comes from a lever whose updates cannot reach the piston; the simulator updates only the 6+6 neighbours of a lever/button |
-| timer v2 / v3 "button held" | the bell rang at t=64 and the v2 gate was unlocked at t=0, before START: not the 2700..3400 hold. Not decidable from code | checks at t=0 (idle and armed) and t=120 (round running) in all timer scripts; timelines from the settle ticks; the first tick where game and simulator differ is printed |
+| timer v2 / v3 "button held" (and, with the new checks, every timer case) | run 3: a powered comparator without block entity gets `OutputSignal` 0 from `/place`; the torch after it pulsed 2 gt in the settle ticks and toggled the bulb, so the round started by itself (lab, per tick) | the `.nbt`/`.schem` writers set comparator `OutputSignal` from the saved state (#50); plus checks at t=0 (idle and armed) and t=120 (round running) in all timer scripts; timelines from the settle ticks; the first tick where game and simulator differ is printed |
 
 New game cases: TNT next to an observer placed by `/place template` vs set last (`test_tnt_game.py`), and the #39 chest without block-entity id placed raw vs through the writer (`test_old_items_game.py`).
 
-To finish (owner): run `uv run pytest -m game --run-game tests/harness`, paste the output here, set the status to `DONE (PR #n, date)`, `git mv` this file to `completed/` with the index update, and merge.
+### Owner's game runs (Windows 11, vanilla 26.3)
+
+- Run 2: 17 passed, 5 failed (#38). Run 3 (a536214): 19 passed, 6 failed (kelp lever; all five timer cases, the new t=0/t=120 checks exposing the placement misfire). Both causes found in the game lab and fixed in #50 and #51.
+- Run 4, final (1856b6a, `phase-06-harness` with main merged):
+
+```text
+$ uv run ruff check .          -> All checks passed!
+$ uv run ruff format --check . -> 222 files already formatted
+$ uv run mypy                  -> Success: no issues found in 186 source files
+$ uv run pytest -q             -> 925 passed, 29 skipped
+$ uv run pytest -m game --run-game tests/harness
+.........................                                                [100%]
+25 passed, 83 deselected in 149.58s (0:02:29)
+$ git grep -ni "eula=true" -- src harness
+(no output, exit 1)
+```
+
+A1: `test_v3_one_game`, `test_v3_three_games`, `test_v3_gate_closes_when_button_held` pass with the round really running (t=0 idle, t=120 running). A2: `test_v1_music_every_other_game` and `test_v2_gate_frozen_open` reproduce the documented bugs. A3: gate tests pass, no EULA acceptance in src.

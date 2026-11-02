@@ -199,7 +199,7 @@ def cases() -> list[Case]:
     )
     out.append(
         Case(
-            "kelp farm lever on the piston face",
+            "kelp farm lever beside the piston",
             _module("kelp_farm"),
             10,
             [{"at": 2, "toggle": [0, 3, 0]}],
@@ -209,15 +209,12 @@ def cases() -> list[Case]:
             issue="#38",
             note=(
                 "Run 1: the piston stayed retracted (/setblock of the lever did not update "
-                "it). Run 2: the lever was gone at tick 6, because the runner replaced the "
-                "piston the lever hangs on. The runner now never replaces a lever's "
-                "non-conductive support: it swaps the stone under the piston instead, so "
-                "the piston gets the update a hand flip gives. Reading the probes, ticks "
-                "2..6: lever gone at tick 2 = the harness still pops it; lever there until "
-                "the piston extends, then gone = an extending piston drops a lever on its "
-                "side (its base is no longer a full block), so the module needs the lever "
-                "on a stone block; lever and extended piston at 6 but kelp still there = "
-                "the cut does not work."
+                "it). Run 2: the runner replaced the piston, popping the lever. Run 3: the "
+                "lever hung on the piston's north face; the lab (per tick) showed the piston "
+                "extend and cut the kelp in the same tick, then the lever popped (an "
+                "extended piston base is not a full block) and the piston retracted. The "
+                "module now has the lever on stone beside the piston; lever and extended "
+                "piston at 6 with the kelp cut = the module works."
             ),
         )
     )
