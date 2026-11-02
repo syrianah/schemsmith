@@ -20,6 +20,7 @@ and are reported as dropped.
 from __future__ import annotations
 
 from schemsmith.core import AIR, BlockState, ConversionReport, Entity, Metadata, Region, Structure
+from schemsmith.core.block_entities import filled_ids_note, with_block_entity_id
 from schemsmith.formats._common import (
     compounds,
     double_list,
@@ -195,6 +196,9 @@ def write_sponge(structure: Structure, version: int = 3) -> tuple[NamedTag, Conv
     if region.pending_block_ticks or region.pending_fluid_ticks:
         n = len(region.pending_block_ticks) + len(region.pending_fluid_ticks)
         report.dropped.append(f"{n} pending ticks (not supported by sponge)")
+    filled = filled_ids_note(Structure(regions=[region]))
+    if filled:
+        report.notes.append(filled)
     same = structure.format == "sponge" and structure.format_version == version
     if structure.extra and not same:
         report.dropped.append(
@@ -230,7 +234,8 @@ def write_sponge(structure: Structure, version: int = 3) -> tuple[NamedTag, Conv
         region.block_entities.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][0])
     ):
         be = Compound({"Pos": IntArray(pos)})
-        bid = nbt.get("id")
+        block = region.get_block(*pos).name if region.contains(*pos) else ""
+        bid = with_block_entity_id(nbt, block).get("id")
         if isinstance(bid, String):
             be["Id"] = bid
         body = without(nbt, "id", "x", "y", "z")

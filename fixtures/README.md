@@ -19,6 +19,10 @@ Known quirks in all three files:
 - There are no block entities: hopper A at (4,1,7) needs 188 stackable items and dropper (12,1,1) needs a music disc, both added by hand in-game.
 - `TotalBlocks` metadata: v1 = 210, v2 and v3 = 209.
 
+## Old items in a chest without block-entity id (`old_items_chest_without_id.litematic`)
+
+Synthetic, written by `scripts/make_old_items_fixture.py` (issue #39). DataVersion 3465 (1.20.1), 3×2×3, stone floor at y=0. The chest at (1,1,1) has a block entity without `id`, as Litematica writes it, holding two 1.20.1 shulker box items (`Count`, `tag.BlockEntityTag.Items`; one with Litematica's `(+NBT)` lore). The hopper at (0,1,1) holds plain bone meal. Expected: `.nbt` and `.schem` writers add `id: "minecraft:chest"` and `minecraft:hopper`; no `old-container-items` warning.
+
 ## Simulator action scripts (`timer_*.yaml`)
 
 Action scripts for `schemsmith simulate` (format in `src/schemsmith/redstone/sim/script.py`, meant to be shared with the phase 06 harness). Each puts 188 items into hopper A (4,1,7), because the schematics carry no block entities.
