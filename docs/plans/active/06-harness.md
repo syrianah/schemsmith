@@ -121,4 +121,25 @@ exit 2   (the cloud agent has no EULA file and never creates one; no server was 
 | A2 | `test_v1_music_every_other_game`, `test_v2_gate_frozen_open` written; waiting for the owner's game run |
 | A3 | `git grep` above prints nothing; `tests/harness/test_eula_gate.py` (23 tests, including "never writes" and "no acceptance in src/harness") passes |
 
+Second offline round after the owner's first game run (#38: 11 passed, 6 failed). Fresh clone of `phase-06-harness` at 864b44e (2026-11-02), with `main` merged in:
+
+```
+$ uv sync                      -> exit 0
+$ uv run ruff check .          -> All checks passed!
+$ uv run ruff format --check . -> 202 files already formatted
+$ uv run mypy                  -> Success: no issues found in 166 source files
+$ uv run pytest -q
+SKIPPED [1] tests/harness/test_old_items_game.py: needs --run-game
+SKIPPED [5] tests/harness/test_timer.py: needs --run-game
+SKIPPED [1] tests/registry/test_gen_registry.py:137: needs --run-network
+782 passed, 24 skipped in 24.16s
+$ uv run pytest -q tests/harness -rs
+SKIPPED [16] tests/harness/test_game_cases.py:20: needs --run-game
+SKIPPED [1] tests/harness/test_old_items_game.py: needs --run-game
+SKIPPED [5] tests/harness/test_timer.py: needs --run-game
+75 passed, 22 skipped in 5.93s
+$ git grep -ni "eula=true" -- src harness
+(no output, exit 1)
+```
+
 To finish (owner): run `uv run pytest -m game --run-game tests/harness`, paste the output here, set the status to `DONE (PR #n, date)`, `git mv` this file to `completed/` with the index update, and merge.
