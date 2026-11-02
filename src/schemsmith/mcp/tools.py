@@ -34,6 +34,7 @@ from schemsmith.registry import (
 )
 from schemsmith.render import RenderTooLarge, render_png
 from schemsmith.render.ascii import LEGEND_CHARS
+from schemsmith.world.diff import diff_world
 
 
 def bounded(result: dict[str, Any]) -> dict[str, Any]:
@@ -496,6 +497,31 @@ class SchemsmithTools:
         if out.get("response_limited"):
             out["hint"] = "request fewer layers with y_min/y_max"
         return out
+
+    def world_diff(
+        self,
+        world: str,
+        path: str,
+        at: list[int],
+        dimension: str = "overworld",
+        ignore_properties: bool = False,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Compare a schematic with the blocks of a world folder under the root (read-only)."""
+        if len(at) != 3:
+            raise ValueError("at must be [x, y, z]")
+        w = resolve_in_root(self.root, world)
+        _, s = self._load(path)
+        n = max(0, min(limit, L.MAX_PAGE_ITEMS))
+        res = diff_world(
+            s,
+            w,
+            (int(at[0]), int(at[1]), int(at[2])),
+            dimension=dimension,
+            ignore_properties=ignore_properties,
+            limit=n,
+        )
+        return bounded(res.to_dict(L.MAX_PAGE_ITEMS))
 
     def structure_install(
         self,

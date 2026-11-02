@@ -171,3 +171,28 @@ uv run schemsmith convert cottage.litematic cottage.nbt
 wrote cottage.schem
 wrote cottage.nbt
 ```
+
+## 6. Check what is really in the world
+
+Once a build stands in the world (placed with `/place template`, pasted, or built by hand from Litematica), `world diff` reads the world's region files and compares them with the schematic, block by block. It only reads: nothing is written into the world folder.
+
+`uv run schemsmith world diff "saves/My World" cottage.litematic --at 100 64 -20`
+
+- `--at X Y Z` is where the schematic's origin is in the world: the position you stood on for `/place template ... ~ ~ ~` (F3 shows it), or Litematica's placement origin.
+- Every block of the schematic except structure void is compared, air included. Properties the schematic sets must match too; `--ignore-properties` compares block names only (useful when the game has recomputed wire shapes or fence connections).
+- `--dimension the_nether` or `the_end` for other dimensions. 26.x worlds keep regions in `dimensions/minecraft/overworld/region/`, older worlds in `region/`; both work.
+- The game saves chunks only now and then. **Pause the game (Esc) before running it**, so the world on disk is current. While the world is open, `world diff` says so (`session.lock is held`) and reads anyway.
+- Chunks that were never generated are listed separately, never counted as air.
+
+The output counts the differences by (expected, found) and lists the first ones (`--limit N`):
+
+```text
+compared 412 blocks of farm.litematic at (100,64,-20) in overworld: 404 match, 8 differ
+differences (count, expected -> found):
+      4  minecraft:tnt[unstable=false] -> minecraft:air
+      4  minecraft:air -> minecraft:tnt[unstable=false]
+first 8 of 8 positions (schematic, world):
+  (3,2,5) at (103,66,-15): expected minecraft:tnt[unstable=false], found minecraft:air
+```
+
+Here the TNT is all there, just in the wrong place: the same block missing at some positions and extra at others usually means the part was placed a few blocks off. The exit code is 0 when everything matches and 1 when something differs, so scripts can use it. The MCP tool `world_diff` does the same with bounded output.

@@ -20,6 +20,7 @@ from schemsmith.formats import FormatError
 from schemsmith.mcp.paths import PathOutsideRoot
 from schemsmith.mcp.tools import SchemsmithTools
 from schemsmith.registry import RegistryError
+from schemsmith.world import WorldError
 
 INSTRUCTIONS = """schemsmith inspects, validates, lints and edits Minecraft schematics
 (.litematic, .schem, .nbt) under the server root. Typical flow: schematic_summary →
@@ -44,6 +45,7 @@ TOOL_NAMES = (
     "materials_list",
     "build_guide",
     "structure_install",
+    "world_diff",
 )
 
 _EXPECTED = (
@@ -54,6 +56,7 @@ _EXPECTED = (
     PathOutsideRoot,
     FormatError,
     RegistryError,
+    WorldError,
 )
 
 
@@ -251,6 +254,21 @@ def create_server(root: Path) -> MCPServer[Any]:
             overwrite,
             dry_run,
         )
+
+    @app.tool()
+    def world_diff(
+        world: str,
+        path: str,
+        at: list[int],
+        dimension: str = "overworld",
+        ignore_properties: bool = False,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Compare a schematic, with its origin at world position at=[x, y, z], against a
+        world folder under the root (read-only, never writes). Returns counts by
+        (expected, found), the first `limit` differing positions, and the chunks that are
+        not generated (never reported as air). Pause the game first so it saves."""
+        return _wrap(tools.world_diff)(world, path, at, dimension, ignore_properties, limit)
 
     return app
 
