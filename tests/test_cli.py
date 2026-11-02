@@ -347,7 +347,7 @@ def test_materials_guide_render_cli(tmp_path: Path, capsys: pytest.CaptureFixtur
     assert data["total_items"] == 209 and data["container_contents"][0]["items"][0]["count"] == 188
     assert main(["materials", v3, "--script", script]) == 0
     assert (
-        "put into minecraft:hopper at (4, 1, 7): 188 x minecraft:cobblestone (script)"
+        "put into minecraft:hopper at (4, 1, 7): 188 cobblestone (script)"
         in capsys.readouterr().out
     )
     assert main(["guide", v3, "--format", "md"]) == 0

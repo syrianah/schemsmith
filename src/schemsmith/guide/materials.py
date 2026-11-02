@@ -121,6 +121,26 @@ class MaterialLine:
         }
 
 
+@dataclass(frozen=True)
+class StackGroup:
+    """``stacks`` slots of ``count`` x ``item`` each (``9 x 64 bone_meal``)."""
+
+    item: str
+    count: int
+    stacks: int
+
+    @property
+    def total(self) -> int:
+        """Items in the whole group."""
+        return self.count * self.stacks
+
+    def __str__(self) -> str:
+        name = self.item.removeprefix("minecraft:")
+        if self.stacks == 1:
+            return f"{self.count} {name}"
+        return f"{self.stacks} x {self.count} {name} ({self.total})"
+
+
 @dataclass
 class ContainerContents:
     """Items that go *inside* a container (not part of the build itself)."""
@@ -128,16 +148,33 @@ class ContainerContents:
     pos: tuple[int, int, int]
     block: str
     items: list[tuple[str, int]]
+    """One entry per slot, in slot order."""
     source: str  # "schematic" or "script"
 
+    def groups(self) -> list[StackGroup]:
+        """Slots with the same item and count, merged, in order of first appearance."""
+        order: dict[tuple[str, int], int] = {}
+        for item, count in self.items:
+            order[(item, count)] = order.get((item, count), 0) + 1
+        return [StackGroup(item, count, n) for (item, count), n in order.items()]
+
     def to_dict(self) -> dict[str, Any]:
-        """JSON-ready form."""
+        """JSON-ready form (grouped, so 27 equal stacks are one entry)."""
         return {
             "pos": list(self.pos),
             "block": self.block,
-            "items": [{"item": i, "count": c} for i, c in self.items],
+            "items": [
+                {"item": g.item, "count": g.count, "stacks": g.stacks, "total": g.total}
+                for g in self.groups()
+            ],
+            "summary": format_contents(self),
             "source": self.source,
         }
+
+
+def format_contents(c: ContainerContents) -> str:
+    """``9 x 64 bone_meal (576), 12 redstone``: the one text form (CLI, guide, MCP)."""
+    return ", ".join(str(g) for g in c.groups())
 
 
 @dataclass

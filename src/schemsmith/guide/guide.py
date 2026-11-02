@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from schemsmith.core import BlockState, Region, Structure
 from schemsmith.diagnostics import Diagnostic
-from schemsmith.guide.materials import MaterialList, format_stacks, material_list
+from schemsmith.guide.materials import MaterialList, format_contents, format_stacks, material_list
 from schemsmith.redstone.graph import components as C
 from schemsmith.redstone.lint import lint_structure
 from schemsmith.redstone.sim.script import Script
@@ -118,7 +118,7 @@ def build_guide(
 def _contents_lines(g: Guide) -> list[str]:
     out = []
     for c in g.materials.contents:
-        items = ", ".join(f"{count} x {item}" for item, count in c.items)
+        items = format_contents(c)
         src = " (from the action script)" if c.source == "script" else ""
         out.append(f"({c.pos[0]},{c.pos[1]},{c.pos[2]}) {c.block.split(':')[1]}: {items}{src}")
     return out
