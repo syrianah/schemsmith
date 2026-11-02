@@ -17,7 +17,12 @@ from __future__ import annotations
 import math
 
 from schemsmith.core import BlockState, ConversionReport, Entity, Metadata, Region, Structure
-from schemsmith.core.block_entities import filled_ids_note, with_block_entity_id
+from schemsmith.core.block_entities import (
+    comparator_signals_note,
+    filled_ids_note,
+    game_block_entities,
+    with_block_entity_id,
+)
 from schemsmith.formats._common import (
     compounds,
     double_list,
@@ -98,6 +103,10 @@ def write_vanilla(structure: Structure) -> tuple[NamedTag, ConversionReport]:
     filled = filled_ids_note(Structure(regions=[region]))
     if filled:
         report.notes.append(filled)
+    signals = comparator_signals_note(Structure(regions=[region]))
+    if signals:
+        report.notes.append(signals)
+    block_entities = game_block_entities(region)
     m = structure.metadata
     if structure.format != "vanilla" and (m.name or m.author or m.description):
         report.dropped.append("metadata (name/author/description) not supported by .nbt")
@@ -114,7 +123,7 @@ def write_vanilla(structure: Structure) -> tuple[NamedTag, ConversionReport]:
             continue
         pos = region.position_of(offset)
         b = Compound({"pos": int_list(pos), "state": Int(remap[idx])})
-        be = region.block_entities.get(pos)
+        be = block_entities.get(pos)
         if be is not None:
             b["nbt"] = with_block_entity_id(without(be, "x", "y", "z"), region.palette[idx].name)
         blocks.append(b)

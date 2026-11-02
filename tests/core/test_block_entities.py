@@ -11,12 +11,13 @@ from schemsmith.core import Region, Structure
 from schemsmith.core.block_entities import (
     EXACT,
     block_entity_id,
+    comparator_signals,
     filled_ids_note,
     missing_ids,
     with_block_entity_id,
 )
 from schemsmith.formats import encode_structure, load_structure, save_structure
-from schemsmith.nbt import Byte, Compound, List, String, TagType
+from schemsmith.nbt import Byte, Compound, Int, List, String, TagType
 from schemsmith.registry import load_registry
 
 REGISTRIES = ("1.21.11", "26.3")
@@ -170,3 +171,49 @@ def test_missing_ids_and_note() -> None:
     ]
     assert filled_ids_note(s).startswith("added the missing id to 1 block entity")
     assert filled_ids_note(Structure(regions=[Region((1, 1, 1))])) == ""
+
+
+# comparators without OutputSignal (#38, measured in the game) ---------------------------------
+
+
+def comparator_row() -> Structure:
+    """Comparators as litemapy saves them: block states only, no block entities.
+
+    (1,0,0) powered, feeding wire of power 9; (1,0,2) powered, feeding a block;
+    (1,0,4) unpowered; (1,0,6) powered with a block entity that already has a signal.
+    """
+    r = Region((3, 1, 7))
+    r.set_block(1, 0, 0, "minecraft:comparator[facing=east,mode=compare,powered=true]")
+    r.set_block(
+        0, 0, 0, "minecraft:redstone_wire[east=side,north=none,power=9,south=none,west=none]"
+    )
+    r.set_block(1, 0, 2, "minecraft:comparator[facing=east,mode=compare,powered=true]")
+    r.set_block(0, 0, 2, "minecraft:stone")
+    r.set_block(1, 0, 4, "minecraft:comparator[facing=east,mode=subtract,powered=false]")
+    r.set_block(1, 0, 6, "minecraft:comparator[facing=east,mode=compare,powered=true]")
+    r.block_entities[(1, 0, 6)] = Compound(
+        {"id": String("minecraft:comparator"), "OutputSignal": Int(4)}
+    )
+    return Structure(regions=[r], data_version=4671, format="litematic")
+
+
+def test_comparator_signals() -> None:
+    got = dict(comparator_signals(comparator_row().regions[0]))
+    assert got == {(1, 0, 0): 9, (1, 0, 2): 15, (1, 0, 4): 0}  # (1,0,6) keeps its own
+
+
+@pytest.mark.parametrize("ext", [".nbt", ".schem"])
+def test_writers_add_comparator_output_signal(tmp_path: Path, ext: str) -> None:
+    """A powered comparator without a block entity output 0 after /place in 26.3: the
+    timer's torch fired a 2 gt pulse and started a round by itself (#38)."""
+    s = comparator_row()
+    report = save_structure(s, tmp_path / f"row{ext}")
+    assert any("OutputSignal of 3 comparators" in n for n in report.notes)
+    back = load_structure(tmp_path / f"row{ext}").regions[0].block_entities
+    assert {p: (be.get_str("id"), be["OutputSignal"]) for p, be in back.items()} == {
+        (1, 0, 0): ("minecraft:comparator", Int(9)),
+        (1, 0, 2): ("minecraft:comparator", Int(15)),
+        (1, 0, 4): ("minecraft:comparator", Int(0)),
+        (1, 0, 6): ("minecraft:comparator", Int(4)),
+    }
+    assert s.regions[0].block_entities.keys() == {(1, 0, 6)}  # the input is not modified

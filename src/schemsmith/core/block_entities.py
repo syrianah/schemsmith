@@ -22,7 +22,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from schemsmith.nbt import Compound, String
+from schemsmith.nbt import Compound, Int, String
 
 if TYPE_CHECKING:  # structure.py imports this module (Region.prune_block_entities)
     from schemsmith.core.structure import Region, Structure
@@ -250,7 +250,64 @@ def filled_ids_note(structure: Structure) -> str:
     return f"added the missing id to {n} {noun} from the block, so the game can upgrade them (#39)"
 
 
+COMPARATOR = "minecraft:comparator"
+_OUTPUT = {"east": (-1, 0, 0), "west": (1, 0, 0), "north": (0, 0, 1), "south": (0, 0, -1)}
+"""Where a comparator outputs, by its ``facing`` (it faces its input)."""
+
+
+def comparator_signals(region: Region) -> Iterator[tuple[Vec3, int]]:
+    """``(local pos, OutputSignal)`` for comparators whose block entity has no signal.
+
+    The game keeps a comparator's output strength in its block entity, not in the
+    block state. A comparator placed by ``/place`` without one outputs 0 even when
+    its state says ``powered=true``, until its first update: in the owners' timer
+    (26.3) that switch-off lit a torch for 2 gt and started a round by itself (#38).
+    The signal is taken from the saved state: 0 when unpowered; when powered, the
+    power of the redstone wire it feeds, else 15.
+    """
+    for pos, state in region.blocks():
+        if state.name != COMPARATOR:
+            continue
+        be = region.block_entities.get(pos)
+        if be is not None and "OutputSignal" in be:
+            continue
+        signal = 0
+        if state.get("powered") == "true":
+            signal = 15
+            d = _OUTPUT.get(state.get("facing") or "")
+            front = (pos[0] + d[0], pos[1] + d[1], pos[2] + d[2]) if d else None
+            if front is not None and region.contains(*front):
+                f = region.get_block(*front)
+                if f.name == "minecraft:redstone_wire" and (f.get("power") or "0") != "0":
+                    signal = int(f.get("power") or "15")
+        yield pos, signal
+
+
+def game_block_entities(region: Region) -> dict[Vec3, Compound]:
+    """The block entities a game format writes: the region's, plus ``OutputSignal`` for
+    comparators without one (:func:`comparator_signals`). The region is not modified."""
+    out = dict(region.block_entities)
+    for pos, signal in comparator_signals(region):
+        be = Compound(out.get(pos) or {"id": String(COMPARATOR)})
+        be["OutputSignal"] = Int(signal)
+        out[pos] = be
+    return out
+
+
+def comparator_signals_note(structure: Structure) -> str:
+    """The writer note for :func:`comparator_signals` over all regions ('' if none)."""
+    n = sum(1 for r in structure.regions for _ in comparator_signals(r))
+    if not n:
+        return ""
+    noun = "comparator" if n == 1 else "comparators"
+    return (
+        f"set the OutputSignal of {n} {noun} from the saved state (without it a powered "
+        "comparator outputs 0 after /place, #38)"
+    )
+
+
 __all__ = [
+    "COMPARATOR",
     "EXACT",
     "NOT_BLOCK_ENTITIES",
     "ORPHAN_HINT",
@@ -259,8 +316,11 @@ __all__ = [
     "FilledId",
     "Orphan",
     "block_entity_id",
+    "comparator_signals",
+    "comparator_signals_note",
     "filled_ids_note",
     "find_orphan_block_entities",
+    "game_block_entities",
     "holds_block_entity",
     "is_vanilla",
     "missing_ids",
