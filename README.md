@@ -186,7 +186,7 @@ Two bugs it is meant to catch automatically, both found by hand in a real build 
 
 ## From an idea to a build
 
-[docs/workflow.md](docs/workflow.md) walks through the whole path: generate a build with the Python API, `validate` and `lint` it, preview it, place it in a creative world with `schemsmith install` and `/place template`, then build it in survival with Litematica.
+[docs/workflow.md](docs/workflow.md) walks through the whole path: generate a build with the Python API, `validate` and `lint` it, preview it, place it in a creative world with `schemsmith install` and `/place template`, then build it in survival with Litematica. The Python API (load, edit, build, place modules, check) is in [docs/python-api.md](docs/python-api.md).
 
 ## File formats
 
