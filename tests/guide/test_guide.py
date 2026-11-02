@@ -17,7 +17,7 @@ def test_timer_guide_markdown() -> None:
     md = to_markdown(build_guide(s, load_script(FIX / "timer_start.yaml")))
     assert md.index("### Layer y=0") < md.index("### Layer y=1") < md.index("### Layer y=2")
     assert "(10,1,9) comparator in **subtract** mode: input from the west, output to the east" in md
-    assert "(4,1,7) hopper: 188 x minecraft:cobblestone" in md
+    assert "(4,1,7) hopper: 188 cobblestone" in md
     assert "(10,1,8) repeater, delay 1: input from the north, output to the south" in md
     assert "wire-shape-inconsistent" in md
     # the script fills hopper A, so its empty-container warning is dropped
