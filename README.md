@@ -198,28 +198,13 @@ AI coding agents build schemsmith phase by phase. One phase = one agent = one pu
 
 ## Use it from an AI client (MCP)
 
-schemsmith ships an MCP server, `schemsmith-mcp`, that speaks stdio. Every path a tool receives is confined to `--root` (symlinks included), and responses are bounded: lists are paginated and oversized results come back as `response_limited` with a hint.
-
-schemsmith is installed from a clone of this repo ([Install](#install)).
-
-**Claude Code:**
+schemsmith ships an MCP server, `schemsmith-mcp` (stdio). It reads and writes only inside one folder, `--root`, and its responses are bounded. Quick start with Claude Code:
 
 ```bash
 claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-mcp --root /path/to/schematics
 ```
 
-**Claude Desktop** (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "schemsmith": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/schemsmith", "schemsmith-mcp", "--root", "/path/to/schematics"]
-    }
-  }
-}
-```
+Setup for Claude Code and Claude Desktop on Windows, macOS and Linux, paths and paging, and every tool with an example: [docs/mcp.md](docs/mcp.md).
 
 | Tool | Does |
 |---|---|
