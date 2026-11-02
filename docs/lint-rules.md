@@ -4,7 +4,20 @@
 
 ## Redstone (phase 04, `src/schemsmith/redstone/lint/rules.py`)
 
-See [plans/completed/04-redstone-lint.md](plans/completed/04-redstone-lint.md) for the full table: `qc-unintended-power`, `locked-repeater-may-freeze-on`, `diode-wrong-direction`, `comparator-mode`, `wire-shape`, `torch-burnout-risk`, `hopper-always-locked`, `hopper-never-locked`, `observer-faces-nothing`, `container-empty`.
+Rules on the power graph: what powers what, including quasi-connectivity. Background: [plans/completed/04-redstone-lint.md](plans/completed/04-redstone-lint.md) and the `minecraft-redstone` skill.
+
+| Rule | Severity | Finds | Fix |
+|---|---|---|---|
+| `qc-unintended-power` | warning | A dropper, dispenser or piston quasi-powered (through the block above it) by a source that is wired to control something else, so it reacts at the wrong moment. The v1 timer bug. | Move the device or remove the source (the plan removes the source, as in `timer_v3_fixed`). |
+| `locked-repeater-may-freeze-on` | warning | A repeater used as a gate through locking. If the lock arrives while its input is on, it freezes on and the gate stays open. The v2 timer bug. | Replace it with a comparator in subtract mode. |
+| `diode-wrong-direction` | warning | A repeater or comparator whose input side has no possible source but whose output side does. | Turn it around. |
+| `comparator-mode-suspicious` | warning / info | A comparator with a side input in compare mode where it acts as a gate (warning), or in subtract mode without any side input (info). | Switch the mode. |
+| `wire-shape-inconsistent` | info | Saved redstone wire shape differs from what the game computes; the game recomputes it on the first update. | Set the computed shape. |
+| `torch-burnout-risk` | warning | A torch in a feedback loop that may toggle more than 8 times in 60 game ticks and burn out. | Suggestion only. |
+| `hopper-always-locked` | warning | A hopper in a circuit that can never unlock. | Suggestion only. |
+| `hopper-never-locked` | warning | A hopper next to redstone that can never be powered, so it never locks. | Suggestion only. |
+| `observer-faces-nothing` | warning | An observer facing a block that never changes. | Suggestion only. |
+| `container-empty-but-required` | warning | A hopper clock, or a dropper or dispenser the circuit activates, with no items where the circuit needs them. | Suggestion only (fill it, or list it in the build guide). |
 
 ## Block placement (issue #21, `src/schemsmith/redstone/lint/placement.py`)
 
@@ -49,3 +62,14 @@ Not covered, by design ([#26](https://github.com/syrianah/schemsmith/issues/26))
 | Rule | Severity | Finds | Fix |
 |---|---|---|---|
 | `place-ignites-tnt` | warning | TNT with, on one of its 6 sides, an observer (any facing or state), a component that powers it and is on in the saved state (powered lever/button/plate/repeater/comparator, lit redstone torch, wire with `power` > 0, redstone block, a detector with `power` > 0), or a block such a component powers. In the owner's 26.3 lab `/place template` did no block updates, yet such TNT was lit right after placing (a TNT duper). `install` prints the same warning. | Suggestion only: place without these blocks, then set them last. |
+
+## Checked by `validate` (`src/schemsmith/registry/validate.py`)
+
+These come from `schemsmith validate` and the MCP tool `schematic_validate`, not from `lint`.
+
+| Rule | Severity | Finds | Fix |
+|---|---|---|---|
+| `invalid-block-state` | error | A block the target version does not know, a property it does not have, or a value it does not allow. | The suggestion names the closest valid block, property or value. |
+| `data-version-mismatch` | error | A block newer than the file's data version (for example a 1.21 copper bulb in a file that declares 1.18.2). | Raise the data version or replace the block. |
+| `old-container-items` | warning | Container items in the pre-1.20.5 format whose container has no block-entity `id` that schemsmith can infer, so the game cannot upgrade them and their contents may be lost ([#39](https://github.com/syrianah/schemsmith/issues/39)). With a known block the `.nbt`/`.schem` writers add the `id` instead. | Refill those containers in the game. |
+| `orphan-block-entity` | warning | A block entity at a block that cannot hold one, usually left over after `Region.set_block` replaced a container. | `Region.prune_block_entities()`, or put the container back. |
