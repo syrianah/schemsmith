@@ -375,3 +375,22 @@ def test_ensure_utf8_output_reconfigures_ansi_streams() -> None:
     utf8 = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
     ensure_utf8_output(utf8)
     assert utf8.encoding == "utf-8"
+
+
+def test_written_paths_use_forward_slashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """render, guide and edit print the path they wrote with / on every OS (#33)."""
+    monkeypatch.chdir(tmp_path)
+    src = Path(__file__).parents[1] / "fixtures" / "timer_v1_qc_dropper.litematic"
+    (tmp_path / "out").mkdir()
+    assert main(["render", str(src), "--output", str(Path("out", "t.png"))]) == 0
+    assert main(["guide", str(src), "--out", str(Path("out", "t.md")), "--format", "md"]) == 0
+    plan = tmp_path / "plan.json"
+    plan.write_text('{"region": null, "edits": []}', "utf-8")
+    edited = str(Path("out", "t.litematic"))
+    assert main(["edit", str(src), "--plan", str(plan), "--apply", "--output", edited]) == 0
+    out = capsys.readouterr().out
+    assert "wrote out/t.png" in out
+    assert "wrote out/t.md" in out
+    assert "wrote out/t.litematic" in out

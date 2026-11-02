@@ -175,5 +175,5 @@ def cmd_edit(args: argparse.Namespace) -> int:
     report = save_structure(s, target, overwrite=args.overwrite)
     for item in report.dropped:
         print(f"dropped: {item}")
-    print(f"wrote {target}")
+    print(f"wrote {target.as_posix()}")
     return 0
