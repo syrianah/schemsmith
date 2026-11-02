@@ -171,6 +171,7 @@ def install_structure(
     if check.material_counts() != structure.material_counts():
         raise InstallError("verification failed: block materials differ after conversion")
     notes.extend(f"dropped: {d}" for d in report.dropped)
+    notes.extend(report.notes)
 
     create_meta = not mcmeta.exists()
     if not create_meta and not _mcmeta_covers(mcmeta, fmt):

@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 
 from schemsmith.core import BlockState, ConversionReport, Entity, Metadata, Region, Structure
+from schemsmith.core.block_entities import filled_ids_note, with_block_entity_id
 from schemsmith.formats._common import (
     compounds,
     double_list,
@@ -94,6 +95,9 @@ def write_vanilla(structure: Structure) -> tuple[NamedTag, ConversionReport]:
     if region.pending_block_ticks or region.pending_fluid_ticks:
         n = len(region.pending_block_ticks) + len(region.pending_fluid_ticks)
         report.dropped.append(f"{n} pending ticks (not supported by vanilla structures)")
+    filled = filled_ids_note(Structure(regions=[region]))
+    if filled:
+        report.notes.append(filled)
     m = structure.metadata
     if structure.format != "vanilla" and (m.name or m.author or m.description):
         report.dropped.append("metadata (name/author/description) not supported by .nbt")
@@ -112,7 +116,7 @@ def write_vanilla(structure: Structure) -> tuple[NamedTag, ConversionReport]:
         b = Compound({"pos": int_list(pos), "state": Int(remap[idx])})
         be = region.block_entities.get(pos)
         if be is not None:
-            b["nbt"] = without(be, "x", "y", "z")
+            b["nbt"] = with_block_entity_id(without(be, "x", "y", "z"), region.palette[idx].name)
         blocks.append(b)
     entities = []
     for e in region.entities:

@@ -3,12 +3,16 @@
 Up to 1.20.4 (data version < 3837) an item was ``{id, Count: byte, tag: {...}}``
 and a shulker box item carried its contents in ``tag.BlockEntityTag.Items``.
 1.20.5 replaced that with ``{id, count, components}``. A schematic from an older
-version keeps the old shape, and on 26.3 such items placed with
-``/place template`` arrived as empty shulker boxes (issue #39), while plain
-items survived.
+version keeps the old shape, and the game upgrades it on load, but only when the
+container's block entity has an ``id``: the game picks the block-entity data
+fixer by that ``id``. Litematica stores block entities without one, and on 26.3
+the shulker boxes inside such a chest arrived empty after ``/place template``
+(issue #39, measured by the owner).
 
-We do not convert items: the game's own upgrade is the reference, and guessing
-its format could lose data in a different way. This module only finds the
+The ``.nbt`` and ``.schem`` writers add a missing ``id`` from the block
+(:mod:`schemsmith.core.block_entities`), so old items are at risk only when no
+``id`` can be inferred (a block schemsmith does not know). We do not convert
+items ourselves: the game's own upgrade is the reference. This module finds the
 items at risk so that ``install``, ``convert``, ``validate`` and the MCP tool can
 warn with the same wording.
 """
@@ -18,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from schemsmith.core.block_entities import block_entity_id
 from schemsmith.core.structure import Structure
 from schemsmith.nbt import Compound, List, String, Tag
 
@@ -35,7 +40,7 @@ class OldItem:
     pos: tuple[int, int, int]
     item_id: str
     where: str
-    """Id of the block entity or entity holding it (``minecraft:chest``, a minecart, ...)."""
+    """The block holding it, or ``entity``."""
 
 
 def _is_old_shape(item: Compound) -> bool:
@@ -72,15 +77,23 @@ def _id(tag: Compound, default: str) -> str:
 
 
 def find_old_container_items(structure: Structure) -> list[OldItem]:
-    """Old-format container items in block entities and entities (structure coordinates)."""
+    """Old-format container items the game cannot upgrade (structure coordinates).
+
+    Items are at risk only when their container has no ``id`` and none can be
+    inferred from the block (or, for an entity, when it has no ``id``).
+    """
     out: list[OldItem] = []
     for region in structure.regions:
         mc = region.min_corner
         for (x, y, z), be in sorted(region.block_entities.items()):
-            holder = _id(be, region.get_block(x, y, z).name if region.contains(x, y, z) else "?")
+            block = region.get_block(x, y, z).name if region.contains(x, y, z) else "?"
+            if "id" in be or block_entity_id(block) is not None:
+                continue
             for item in _walk(be):
-                out.append(OldItem((mc[0] + x, mc[1] + y, mc[2] + z), _id(item, "?"), holder))
+                out.append(OldItem((mc[0] + x, mc[1] + y, mc[2] + z), _id(item, "?"), block))
         for e in region.entities:
+            if "id" in e.nbt:
+                continue
             pos = (
                 mc[0] + int(e.pos[0] // 1),
                 mc[1] + int(e.pos[1] // 1),
@@ -105,8 +118,9 @@ def old_items_warning(items: list[OldItem]) -> str:
         listed += f" and {len(seen) - MAX_LISTED} more"
     noun = "container item" if len(items) == 1 else "container items"
     return (
-        f"{len(items)} {noun} in pre-1.20.5 format at {listed}: their contents may be lost "
-        f"when placed in 26.x; refill them in game ({ISSUE})"
+        f"{len(items)} {noun} in pre-1.20.5 format at {listed}: their container has no "
+        "block-entity id and none can be inferred from the block, so the game cannot upgrade "
+        f"them; their contents may be lost when placed in 26.x; refill them in game ({ISSUE})"
     )
 
 

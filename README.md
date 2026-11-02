@@ -114,7 +114,7 @@ Design and rules: `docs/adr/0002-harness.md`, in [PR #37](https://github.com/syr
 ## Known limitations
 
 - Not on PyPI yet (OQ-5): run it from a checkout of this repo.
-- Filled shulker boxes (and other container items) in schematics made before Minecraft 1.20.5 can arrive empty when placed in 26.x; schemsmith warns about them ([#39](https://github.com/syrianah/schemsmith/issues/39)).
+- Filled shulker boxes in Litematica files made before Minecraft 1.20.5 arrived empty in 26.x because the chests had no block-entity `id`. schemsmith now adds the missing `id` when writing `.nbt` and `.schem`, and warns only when it cannot; the owner's next game run confirms the fix ([#39](https://github.com/syrianah/schemsmith/issues/39)).
 - Whether a block conducts redstone power is guessed from its name ([#9](https://github.com/syrianah/schemsmith/issues/9)); findings that depend on it say so.
 
 ## License
