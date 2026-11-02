@@ -139,7 +139,7 @@ wrote saves/My World/datapacks/schemsmith/pack.mcmeta (data pack format 121)
 - `install` never writes to `<world>/generated/`. That folder belongs to the game; a file put there by hand broke a world upgrade once ("Failed to upgrade the world"). If you have old files in `generated/`, move them out yourself.
 - Try it on a copy of your world first. `/place template` overwrites whatever is in the way.
 
-**Installing old schematics (made before 1.20.5).** Items inside containers were stored differently before Minecraft 1.20.5. A schematic from 1.20.4 or older keeps that old format, and on 26.3 filled shulker boxes inside a chest (Litematica's "+NBT" items) arrived **empty** after `/place template`, while plain items such as bone meal in a hopper survived ([#39](https://github.com/syrianah/schemsmith/issues/39)). `install`, `convert`, `validate` and the MCP tool warn about such items: "N container items in pre-1.20.5 format at ...: their contents may be lost when placed in 26.x; refill them in game (#39)". schemsmith does not rewrite the items itself, because the game's own upgrade is the reference. Refill the listed containers by hand after placing.
+**Installing old schematics (made before 1.20.5).** Items inside containers were stored differently before Minecraft 1.20.5. The game upgrades them when it loads the structure, but only when the container's block entity has an `id`, because the `id` tells the game which upgrade to run. Litematica stores block entities without `id`, and on 26.3 the filled shulker boxes inside such a chest arrived **empty** after `/place template` ([#39](https://github.com/syrianah/schemsmith/issues/39)). `install` and `convert` to `.nbt` or `.schem` therefore add the missing `id` from the block (a chest gets `minecraft:chest`, any shulker box `minecraft:shulker_box`) and say so in a note; an existing `id` is never changed. Only when no `id` can be inferred (a block schemsmith does not know) do `install`, `convert`, `validate` and the MCP tool warn: "N container items in pre-1.20.5 format at ...: their container has no block-entity id and none can be inferred from the block, so the game cannot upgrade them; their contents may be lost when placed in 26.x; refill them in game (#39)". Refill those containers by hand after placing.
 
 A second version goes in under a new name:
 
@@ -171,3 +171,34 @@ uv run schemsmith convert cottage.litematic cottage.nbt
 wrote cottage.schem
 wrote cottage.nbt
 ```
+
+## 6. Check what is really in the world
+
+Once a build stands in the world (placed with `/place template`, pasted, or built by hand from Litematica), `world diff` reads the world's region files and compares them with the schematic, block by block. It only reads: nothing is written into the world folder.
+
+`uv run schemsmith world diff "saves/My World" cottage.litematic --at 100 64 -20`
+
+- `--at X Y Z` is where the schematic's origin is in the world: the position you stood on for `/place template ... ~ ~ ~` (F3 shows it), or Litematica's placement origin.
+- Every block of the schematic except structure void is compared, air included. Properties the schematic sets must match too; `--ignore-properties` compares block names only (useful when the game has recomputed wire shapes or fence connections).
+- `--dimension the_nether` or `the_end` for other dimensions. 26.x worlds keep regions in `dimensions/minecraft/overworld/region/`, older worlds in `region/`; both work.
+- The game saves chunks only now and then. **Pause the game (Esc) before running it**, so the world on disk is current. While the world is open, `world diff` says so (`session.lock is held`) and reads anyway.
+- Chunks that were never generated are listed separately, never counted as air.
+
+The output counts the differences by (expected, found) and lists the first ones (`--limit N`):
+
+```text
+compared 412 blocks of farm.litematic at (100,64,-20) in overworld: 404 match, 8 differ
+differences (count, expected -> found):
+      4  minecraft:tnt[unstable=false] -> minecraft:air
+      4  minecraft:air -> minecraft:tnt[unstable=false]
+first 8 of 8 positions (schematic, world):
+  (3,2,5) at (103,66,-15): expected minecraft:tnt[unstable=false], found minecraft:air
+```
+
+Here the TNT is all there, just in the wrong place: the same block missing at some positions and extra at others usually means the part was placed a few blocks off. The exit code is 0 when everything matches and 1 when something differs, so scripts can use it. The MCP tool `world_diff` does the same with bounded output.
+
+To save something that was built by hand in the world as a schematic, `world extract` reads a box (both corners included, in any order) and writes `.litematic`, `.nbt` or `.schem`, with the block entities (chest contents, signs) but without entities (item frames, minecarts):
+
+`uv run schemsmith world extract "saves/My World" --from 100 64 -20 --to 112 70 -8 -o shed.litematic`
+
+It refuses to write inside the world folder, refuses boxes that touch ungenerated chunks, and replaces an existing output only with `--overwrite`.

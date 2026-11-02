@@ -27,6 +27,8 @@ from pathlib import Path
 from schemsmith.core import Structure
 from schemsmith.core.old_items import find_old_container_items, old_items_warning
 from schemsmith.formats import encode_structure, read_structure
+from schemsmith.redstone.lint import lint_structure
+from schemsmith.redstone.lint.tnt import RULE_ID as TNT_RULE
 from schemsmith.registry import load_registry
 
 DATA_PACK_FORMATS: dict[str, int] = {"26.3": 121}
@@ -121,6 +123,14 @@ def _mcmeta_covers(path: Path, pack_format: int) -> bool:
     return major(pack.get("pack_format")) == pack_format
 
 
+def placement_warnings(structure: Structure) -> list[str]:
+    """Warnings ``install`` prints: old container items (#39) and TNT that /place lights."""
+    out = [w for w in [old_items_warning(find_old_container_items(structure))] if w]
+    for d in lint_structure(structure, [TNT_RULE]):
+        out.append(f"{d.message}. {d.suggestion}")
+    return out
+
+
 def install_structure(
     structure: Structure,
     world: Path | str,
@@ -171,6 +181,7 @@ def install_structure(
     if check.material_counts() != structure.material_counts():
         raise InstallError("verification failed: block materials differ after conversion")
     notes.extend(f"dropped: {d}" for d in report.dropped)
+    notes.extend(report.notes)
 
     create_meta = not mcmeta.exists()
     if not create_meta and not _mcmeta_covers(mcmeta, fmt):
@@ -216,7 +227,7 @@ def install_structure(
         commands=commands,
         notes=notes,
         dry_run=dry_run,
-        warnings=[w for w in [old_items_warning(find_old_container_items(structure))] if w],
+        warnings=placement_warnings(structure),
     )
 
 

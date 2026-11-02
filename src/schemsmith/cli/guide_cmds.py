@@ -9,7 +9,7 @@ from typing import Any
 
 from schemsmith.formats import load_structure
 from schemsmith.guide import build_guide, material_list, to_html, to_markdown
-from schemsmith.guide.materials import format_stacks
+from schemsmith.guide.materials import format_contents, format_stacks
 from schemsmith.redstone.sim import load_script
 from schemsmith.render import layer_ascii, render_png
 
@@ -68,9 +68,10 @@ def cmd_materials(args: argparse.Namespace) -> int:
     print(
         f"total: {m.total_items} items, {m.total_stacks} stacks, {m.shulker_boxes} shulker box(es)"
     )
+    if m.water_line:
+        print(m.water_line)
     for c in m.contents:
-        items = ", ".join(f"{count} x {item}" for item, count in c.items)
-        print(f"put into {c.block} at {c.pos}: {items} ({c.source})")
+        print(f"put into {c.block} at {c.pos}: {format_contents(c)} ({c.source})")
     return 0
 
 

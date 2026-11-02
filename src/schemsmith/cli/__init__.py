@@ -15,6 +15,7 @@ from schemsmith.cli import (
     install_cmds,
     redstone_cmds,
     registry_cmds,
+    world_cmds,
 )
 
 Handler = Callable[[argparse.Namespace], int]
@@ -35,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     guide_cmds.register(sub)
     install_cmds.register(sub)
     harness_cmds.register(sub)
+    world_cmds.register(sub)
     return parser
 
 

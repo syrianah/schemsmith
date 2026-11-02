@@ -65,6 +65,7 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 | `build_list_modules` / `build_place_module` | Module library: list, describe, place (rotated/mirrored) |
 | `render_preview` / `materials_list` / `build_guide` | Isometric PNG (no textures), material list, layer-by-layer guide |
 | `structure_install` | Put a schematic into a world datapack for `/place template` (world folder under the root) |
+| `world_diff` | Compare a schematic with the blocks really placed in a world (read-only) |
 
 ### Installing into a world (`/place template`)
 
@@ -76,6 +77,10 @@ claude mcp add schemsmith -- uv run --directory /path/to/schemsmith schemsmith-m
 ```
 
 It never writes to `<world>/generated/` (the game owns it; a file there broke a world upgrade). It prints the commands to run in the game (`/reload`, then `/place template ns:name ~ ~ ~`), with a y offset when the schematic origin sits above its lowest block (or `--ground-y`). The data pack format is known for 26.3 (121); for other releases pass `--pack-format` (`pack_version.data_major` in the server jar's `version.json`). An existing structure is replaced only with `--overwrite`, and the game caches templates, so after a change install under a new `--name` or rejoin the world.
+
+### Checking a world (read-only)
+
+`schemsmith world diff WORLD FILE --at X Y Z [--dimension overworld] [--ignore-properties] [--limit N]` reads the world's region files and compares every block of FILE (except structure void) with what is placed there, origin at `--at`. It never writes into the world; pause the game first so it has saved. `schemsmith world extract WORLD --from X Y Z --to X Y Z -o OUT [--dimension overworld] [--overwrite]` saves a box of the world (blocks and block entities) as `.litematic`, `.nbt` or `.schem`. See [docs/workflow.md](docs/workflow.md#6-check-what-is-really-in-the-world).
 
 ### Edit plans
 
@@ -114,7 +119,7 @@ Design and rules: [docs/adr/0002-harness.md](docs/adr/0002-harness.md).
 ## Known limitations
 
 - Not on PyPI yet (OQ-5): run it from a checkout of this repo.
-- Filled shulker boxes (and other container items) in schematics made before Minecraft 1.20.5 can arrive empty when placed in 26.x; schemsmith warns about them ([#39](https://github.com/syrianah/schemsmith/issues/39)).
+- Filled shulker boxes in Litematica files made before Minecraft 1.20.5 arrived empty in 26.x because the chests had no block-entity `id`. schemsmith now adds the missing `id` when writing `.nbt` and `.schem`, and warns only when it cannot; the owner's next game run confirms the fix ([#39](https://github.com/syrianah/schemsmith/issues/39)).
 - Whether a block conducts redstone power is guessed from its name ([#9](https://github.com/syrianah/schemsmith/issues/9)); findings that depend on it say so.
 
 ## License

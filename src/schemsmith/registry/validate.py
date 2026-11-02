@@ -1,10 +1,17 @@
-"""Rules ``invalid-block-state`` and ``data-version-mismatch``."""
+"""Rules ``invalid-block-state``, ``data-version-mismatch``, ``old-container-items`` and
+``orphan-block-entity``."""
 
 from __future__ import annotations
 
 import difflib
 
 from schemsmith.core import BlockState, Structure
+from schemsmith.core.block_entities import (
+    ORPHAN_HINT,
+    ORPHAN_RULE,
+    find_orphan_block_entities,
+    orphan_warning,
+)
 from schemsmith.core.old_items import OLD_ITEMS_RULE, find_old_container_items, old_items_warning
 from schemsmith.diagnostics import Diagnostic, Severity
 from schemsmith.registry.experimental import default_release
@@ -104,6 +111,13 @@ def validate_structure(
                 old_items_warning(old),
                 "after placing, open each listed container and refill the shulker boxes (or "
                 "other container items) by hand; placing a fresh copy will not bring them back",
+            )
+        )
+    orphans = find_orphan_block_entities(structure)
+    if orphans:
+        out.append(
+            Diagnostic(
+                ORPHAN_RULE, Severity.WARNING, orphans[0].pos, orphan_warning(orphans), ORPHAN_HINT
             )
         )
     return out

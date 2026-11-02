@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from schemsmith.core import BlockState, Region, Structure
 from schemsmith.diagnostics import Diagnostic
-from schemsmith.guide.materials import MaterialList, format_stacks, material_list
+from schemsmith.guide.materials import MaterialList, format_contents, format_stacks, material_list
 from schemsmith.redstone.graph import components as C
 from schemsmith.redstone.lint import lint_structure
 from schemsmith.redstone.sim.script import Script
@@ -118,7 +118,7 @@ def build_guide(
 def _contents_lines(g: Guide) -> list[str]:
     out = []
     for c in g.materials.contents:
-        items = ", ".join(f"{count} x {item}" for item, count in c.items)
+        items = format_contents(c)
         src = " (from the action script)" if c.source == "script" else ""
         out.append(f"({c.pos[0]},{c.pos[1]},{c.pos[2]}) {c.block.split(':')[1]}: {items}{src}")
     return out
@@ -144,6 +144,8 @@ def to_markdown(g: Guide) -> str:
     ]
     lines += [f"| {line.item} | {line.count} | {format_stacks(line)} |" for line in m.lines]
     lines.append("")
+    if m.water_line:
+        lines += [m.water_line + ".", ""]
     contents = _contents_lines(g)
     if contents:
         lines += ["## Put into containers", "", *[f"- {c}" for c in contents], ""]
@@ -200,6 +202,8 @@ def to_html(g: Guide) -> str:
         f"{m.shulker_boxes} shulker box(es).</p>",
         f"<table><tr><th>Item</th><th>Count</th><th>Stacks</th></tr>{rows}</table>",
     ]
+    if m.water_line:
+        parts.append(f"<p>{e(m.water_line)}.</p>")
     contents = _contents_lines(g)
     if contents:
         parts.append(

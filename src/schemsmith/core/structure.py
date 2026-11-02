@@ -17,6 +17,7 @@ from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+from schemsmith.core.block_entities import orphans_in
 from schemsmith.core.blockstate import AIR, BlockState
 from schemsmith.nbt import Compound
 
@@ -144,12 +145,25 @@ class Region:
     def set_block(self, x: int, y: int, z: int, state: BlockState | str) -> None:
         """Set the block state at a local position (adds it to the palette if needed).
 
-        The block entity at that position is kept; remove it explicitly when the
-        new block cannot hold one.
+        The block entity at that position is kept (a chest replaced with air keeps
+        its items); call :meth:`prune_block_entities` afterwards to drop block
+        entities whose block cannot hold one.
         """
         if isinstance(state, str):
             state = BlockState.parse(state)
         self.indices[self._offset(x, y, z)] = self._index_of(state)
+
+    def prune_block_entities(self) -> dict[Vec3, Compound]:
+        """Drop block entities whose block cannot hold one; return what was removed.
+
+        Uses the block → block-entity table in :mod:`schemsmith.core.block_entities`.
+        Blocks it does not know (a mod's) keep their block entity; positions
+        outside the region are dropped.
+        """
+        removed = {pos: self.block_entities[pos] for pos, _ in list(orphans_in(self))}
+        for pos in removed:
+            del self.block_entities[pos]
+        return removed
 
     def blocks(self, *, include_air: bool = False) -> Iterator[tuple[Vec3, BlockState]]:
         """Iterate ``((x, y, z), state)`` in index order."""
