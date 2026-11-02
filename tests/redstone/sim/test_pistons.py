@@ -1,7 +1,10 @@
 """Piston block movement (issue #16): every rule with its timing.
 
-Model (see ``redstone/sim/pistons.py``): a piston starts moving in the tick it gets
-(or loses) power; moved blocks are ``moving_piston`` for 2 gt and arrive after that.
+Model (see ``redstone/sim/pistons.py``): a piston starts moving in its block event, at
+the end of the tick it gets (or loses) power; when an action between ticks (a click, a
+harness command) changed the power, that is the next tick (issue #38). Moved blocks are
+``moving_piston`` for 2 gt and arrive in the block-entity phase, after that tick's block
+events, so a sticky piston unpowered 2 gt after it started still spits its block.
 """
 
 from __future__ import annotations
@@ -47,12 +50,13 @@ def test_push_takes_two_ticks() -> None:
         {(1, 1, 1): LEVER_W, (2, 1, 1): PISTON_E, (3, 1, 1): "stone"},
         [(5, (1, 1, 1))],
         [
-            at(4, (3, 1, 1), block="minecraft:stone"),
-            at(5, (2, 1, 1), extended=True),
-            at(5, (4, 1, 1), block="minecraft:moving_piston"),
+            at(5, (3, 1, 1), block="minecraft:stone"),  # the lever was flipped between ticks
+            at(5, (2, 1, 1), extended=False),
+            at(6, (2, 1, 1), extended=True),
             at(6, (4, 1, 1), block="minecraft:moving_piston"),
-            at(7, (4, 1, 1), block="minecraft:stone"),
-            at(7, (3, 1, 1), block="minecraft:piston_head"),
+            at(7, (4, 1, 1), block="minecraft:moving_piston"),
+            at(8, (4, 1, 1), block="minecraft:stone"),
+            at(8, (3, 1, 1), block="minecraft:piston_head"),
         ],
     )
     assert [e.kind for e in r.events if e.kind.startswith("piston")] == ["piston_extend"]
@@ -65,8 +69,8 @@ def test_normal_piston_leaves_the_block_sticky_pulls_it_back() -> None:
         blocks,
         [(5, (1, 1, 1)), (20, (1, 1, 1))],
         [
-            at(20, (2, 1, 1), extended=False),
-            at(20, (3, 1, 1), block="minecraft:air"),
+            at(21, (2, 1, 1), extended=False),
+            at(21, (3, 1, 1), block="minecraft:air"),
             at(25, (4, 1, 1), block="minecraft:stone"),
         ],
     )
@@ -74,10 +78,10 @@ def test_normal_piston_leaves_the_block_sticky_pulls_it_back() -> None:
         {**blocks, (2, 1, 1): STICKY_E},
         [(5, (1, 1, 1)), (20, (1, 1, 1))],
         [
-            at(20, (4, 1, 1), block="minecraft:air"),
-            at(21, (3, 1, 1), block="minecraft:moving_piston"),
-            at(22, (3, 1, 1), block="minecraft:stone"),
-            at(22, (2, 1, 1), extended=False),
+            at(21, (4, 1, 1), block="minecraft:air"),
+            at(22, (3, 1, 1), block="minecraft:moving_piston"),
+            at(23, (3, 1, 1), block="minecraft:stone"),
+            at(23, (2, 1, 1), extended=False),
         ],
     )
 
@@ -131,8 +135,8 @@ def test_fragile_blocks_are_destroyed() -> None:
         },
         [(5, (1, 1, 1))],
         [
-            at(7, (4, 1, 1), block="minecraft:stone"),
-            at(7, (3, 1, 1), block="minecraft:piston_head"),
+            at(8, (4, 1, 1), block="minecraft:stone"),
+            at(8, (3, 1, 1), block="minecraft:piston_head"),
         ],
     )
     assert [e.detail for e in r.events if e.kind == "piston_destroy"] == ["minecraft:poppy"]
@@ -184,18 +188,26 @@ def test_one_tick_pulse_spits_the_block() -> None:
         blocks,
         [(5, (1, 1, 1)), (6, (1, 1, 1))],
         [
-            at(6, (4, 1, 1), block="minecraft:stone"),  # placed at once, not pulled back
+            at(7, (4, 1, 1), block="minecraft:stone"),  # placed at once, not pulled back
             at(10, (4, 1, 1), block="minecraft:stone"),
             at(10, (3, 1, 1), block="minecraft:air"),
             at(10, (2, 1, 1), extended=False),
         ],
     )
     assert any(e.kind == "piston_spit" for e in r.events)
-    # a 2 gt pulse lets the block arrive, so the sticky piston pulls it back
-    run(
+    # a 2 gt pulse (an observer's) still spits: the retraction's block event comes before
+    # the moving block finishes in the same tick (the owner's 26.3 run, issue #38)
+    r2 = run(
         blocks,
         [(5, (1, 1, 1)), (7, (1, 1, 1))],
-        [at(12, (3, 1, 1), block="minecraft:stone"), at(12, (4, 1, 1), block="minecraft:air")],
+        [at(12, (4, 1, 1), block="minecraft:stone"), at(12, (3, 1, 1), block="minecraft:air")],
+    )
+    assert any(e.kind == "piston_spit" for e in r2.events)
+    # 3 gt: the block has arrived, so the sticky piston pulls it back
+    run(
+        blocks,
+        [(5, (1, 1, 1)), (8, (1, 1, 1))],
+        [at(14, (3, 1, 1), block="minecraft:stone"), at(14, (4, 1, 1), block="minecraft:air")],
     )
 
 
@@ -208,7 +220,7 @@ def test_moved_power_source_updates_the_circuit() -> None:
             (5, 1, 1): "redstone_lamp[lit=false]",
         },
         [(5, (1, 1, 1))],
-        [at(6, (5, 1, 1), lit=False), at(7, (5, 1, 1), lit=True)],
+        [at(7, (5, 1, 1), lit=False), at(8, (5, 1, 1), lit=True)],
     )
     assert r.passed
 

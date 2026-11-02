@@ -81,3 +81,39 @@ The real game is the source of truth, not our simulator or these skills. When un
 
 The tick simulator (`schemsmith.redstone.sim`) is not the game. Its known simplifications are listed in `SIMPLIFICATIONS` (`src/schemsmith/redstone/sim/engine.py`) and printed with every result. Behaviour still to be confirmed in-game is tracked in issue #12. Until the phase 06 harness exists, the simulator is checked only against the timer scenarios in `fixtures/README.md`, the component timings in `tests/redstone/sim/test_components.py` and the piston rules in `tests/redstone/sim/test_pistons.py` (issue #16).
 
+## 12. In-game harness (phase 06)
+
+The harness runs a schematic and an action script on a real vanilla server **on the owner's machine only** (OQ-1). Design: [adr/0002-harness.md](adr/0002-harness.md).
+
+Before the first run (owner):
+
+1. Read the Minecraft EULA at https://aka.ms/MinecraftEULA. If you accept it, create `~/.schemsmith/eula.txt` yourself (on Windows `%USERPROFILE%\.schemsmith\eula.txt`) with one line: the word `eula`, an equals sign, the word `true`. Any encoding the usual editors or PowerShell write is fine. **Agents never create this file**, and nothing in schemsmith writes it; the harness only copies it, unchanged, into its throwaway server directory for one run.
+2. Install Java (the owner uses Java 26) and download the server jar once: `uv run python scripts/gen_registry.py 26.3`, which puts it in `.mc-cache/26.3/server.jar`.
+
+Run:
+
+```bash
+uv run schemsmith verify fixtures/timer_v3_fixed.litematic --script fixtures/timer_start.yaml --compare-sim
+uv run pytest -m game --run-game tests/harness
+```
+
+- `verify` exits 0 (passed), 1 (failed) or 2 (could not run, e.g. no EULA file or no jar). `--keep` keeps `.mc-cache/harness/run-*` with `server.log`; `--format json` for tools.
+- Scripts are the simulator's (`simulate --script`). Supported in the game: `press`, `hold`, `toggle`, `insert`, `update` (replace a block and put it back, so its neighbours react); expectations `events` (bell, note, disc_start, disc_end, piston_extend, piston_retract, bulb_on, bulb_off, press, toggle), `container`, and probes of `block`, `items`, `power`, `output` and the boolean states. Anything else is refused before the server starts.
+- `tests/harness/test_game_cases.py` checks that the game gives the simulator's answers for the #12 timings. A failure means the simulator is wrong: fix `src/schemsmith/redstone/sim` and the `minecraft-redstone` skill.
+- Agents (cloud or local) never run `game` tests and never start a server.
+
+### Lessons from the owner's 26.3 runs (#38, #39)
+
+- **Timing:** measure only with `/tick freeze` + `/tick step`. Real-time sequences over RCON are racy for machines with clocks.
+- **Actions happen between ticks**, like a player's click. What they schedule (repeaters, buttons) counts from their tick. The block events they cause (pistons) run in the *next* level tick. The simulator follows this since #38.
+- **Pistons:** moving blocks finish in the block-entity phase, after that tick's block events. A sticky piston unpowered 2 gt after it started (an observer pulse) therefore still spits its block; 3 gt pulls it back.
+- **`/place template` does no block updates.** Redstone placed this way can misfire right after placement. Blocks that depend on neighbours, like scaffolding `distance`, settle over the next ticks, and scaffolding lines then send a delayed pulse of about 1 gt per block. Quasi-connected droppers and dispensers notice their power only after an update: use the `update` action.
+- **Blocks that check their power when placed react anyway.** A quasi-powered piston placed by the template was out before any update (#38, #12.2); TNT next to an observer or a powered component was lit (`place-ignites-tnt`). Test QC with power that arrives after placing.
+- **A jukebox updates only its six neighbours.** A dropper diagonal to it does not react when the music starts.
+- **`/setblock` of a lever or button does not update the block it hangs on.** The runner emulates a hand flip by swapping a conductive support and putting it back. It never swaps a non-conductive support (a piston): that popped the kelp farm's lever (#38). It swaps another neighbour of the support instead. A hand flip updates the six neighbours of the lever and of its support, nothing farther (the simulator does the same since #38).
+- **Jukeboxes:** feed discs through a hopper or dropper. `/item replace` may not start playback. The hopper's timing was flaky in a full run, so cases wait for it (`wait_empty`, bounded by `MAX_WAIT_TICKS`).
+- **A passing check is not proof that the machine ran.** In the timer, "bell once, hopper A full, hopper B empty" also holds when a round ends at once (second run: bell at t=64). Add a probe that shows the machine is running.
+- **Entities in a template** (hopper minecarts) are placed too: check their contents as well.
+- **Counting changed blocks:** `fill ... replace X` with the same block reports 0 changes. Counting needs a round trip (X → `structure_void` → X).
+- **Old item formats (#39):** the item shape is not the problem. A container block entity without `id`, as Litematica writes it, is: the game then cannot upgrade the items inside. The `.nbt`/`.schem` writers add the missing `id` (#42). `tests/harness/test_old_items_game.py` places a raw template and schemsmith's side by side.
+

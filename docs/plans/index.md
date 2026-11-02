@@ -26,7 +26,6 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 
 ## Active
 
-- [06-harness](active/06-harness.md): in-game verification on a headless vanilla server (owner's machine only). NOT STARTED · depends on: 02, 05 · PR: — · blockers: — (OQ-1 answered; agent leaves the PR open for the owner's game run)
 - [10-release](active/10-release.md): packaging, docs site, 1.0. BLOCKED (OQ-5) · depends on: 05, 08, 09 · PR: — · blockers: OQ-5
 
 ## Completed
@@ -37,6 +36,7 @@ Full template: [_TEMPLATE.md](_TEMPLATE.md).
 - [03-registry](completed/03-registry.md): per-version block registry, `validate`. DONE (PR #10, 2026-11-01) · depends on: 02 · PR: #10 · blockers: —
 - [04-redstone-lint](completed/04-redstone-lint.md): power graph, lint rules, `lint`/`trace`; catches both timer bugs. DONE (PR #13, 2026-11-01) · depends on: 02, 03 · PR: #13 · blockers: —
 - [05-mcp-cli](completed/05-mcp-cli.md): MCP server with bounded tools, edit plans. DONE (PR #14, 2026-11-01) · depends on: 02, 03, 04 · PR: #14 · blockers: —
+- [06-harness](completed/06-harness.md): in-game verification on a headless vanilla server (owner's machine only). DONE (PR #37, 2026-11-02) · depends on: 02, 05 · PR: #37 · blockers: —
 - [07-simulator](completed/07-simulator.md): tick simulator cross-checked against the harness. DONE (PR #15, 2026-11-01) · depends on: 04, 05 (06 as oracle) · PR: #15 · blockers: —
 - [08-build-api](completed/08-build-api.md): geometry, primitives, module library. DONE (PR #18, 2026-11-01) · depends on: 04, 05, 07 · PR: #18 · blockers: —
 - [09-previews](completed/09-previews.md): renders, material lists, build guides. DONE (PR #19, 2026-11-01) · depends on: 02, 04, 05 · PR: #19 · blockers: — (uses default of OQ-3)

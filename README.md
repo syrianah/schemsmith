@@ -114,7 +114,7 @@ The harness runs a schematic and an action script on a real vanilla server and c
 uv run pytest -m game --run-game tests/harness
 ```
 
-Design and rules: `docs/adr/0002-harness.md`, in [PR #37](https://github.com/syrianah/schemsmith/pull/37) until phase 06 is merged.
+Design and rules: [docs/adr/0002-harness.md](docs/adr/0002-harness.md).
 
 ## Known limitations
 

@@ -11,6 +11,7 @@ from schemsmith.cli import (
     build_cmds,
     formats_cmds,
     guide_cmds,
+    harness_cmds,
     install_cmds,
     redstone_cmds,
     registry_cmds,
@@ -34,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_cmds.register(sub)
     guide_cmds.register(sub)
     install_cmds.register(sub)
+    harness_cmds.register(sub)
     world_cmds.register(sub)
     return parser
 

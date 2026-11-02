@@ -42,6 +42,7 @@ uv run schemsmith lint FILE / trace FILE X Y Z       # from phase 04 (rules: doc
 uv run schemsmith edit FILE --plan plan.json [--apply]  # from phase 05
 uv run schemsmith-mcp --root DIR # from phase 05
 uv run schemsmith simulate FILE --script S.yaml       # from phase 07
+uv run schemsmith verify FILE --script S.yaml         # phase 06, owner's machine only (agent-rules §12)
 uv run schemsmith new F / place F MODULE --at X Y Z   # from phase 08 (modules: docs/modules.md)
 uv run schemsmith materials F / guide F / render F    # from phase 09
 uv run schemsmith install F --world W [--name N]      # datapack for /place template (#24)
@@ -61,7 +62,7 @@ uv run schemsmith world extract W --from .. --to .. -o F   # read-only: box -> s
 - **Previews and build guides** → `src/schemsmith/render/`, `src/schemsmith/guide/`
 - **CLI / MCP server** → `src/schemsmith/cli/`, `src/schemsmith/mcp/`
 - **World datapack install** → `src/schemsmith/install.py` · **World reader (read-only)** → `src/schemsmith/world/`
-- **In-game harness** → `harness/`
+- **In-game harness** → `src/schemsmith/harness/` (no mod; `harness/` holds non-Python files, none today)
 - **Regression schematics** → `fixtures/` (documented in `fixtures/README.md`)
 - **Minecraft knowledge (skills)** → `.claude/skills/`
 - **Plans** → `docs/plans/` · **Open questions** → `docs/OPEN-QUESTIONS.md` · **Decisions** → `docs/adr/` · **Rule detail** → `docs/agent-rules.md`

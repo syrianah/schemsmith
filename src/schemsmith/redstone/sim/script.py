@@ -16,6 +16,8 @@ same files::
       - {at: 100, hold: [9, 2, 9], for: 60}    # keep a button pressed (repeated clicking)
       - {at: 200, toggle: [1, 1, 1]}           # lever
       - {at: 300, insert: [4, 1, 7], items: [{id: minecraft:stone, count: 1}]}
+      - {at: 400, update: [2, 0, 2]}           # a block update: the neighbours of [2,0,2]
+                                               # react as if that block changed
     watch:
       - [12, 1, 7]
       - {pos: [4, 1, 7], label: hopper A}
@@ -96,7 +98,7 @@ def _items(v: Any, what: str) -> list[tuple[str, int]]:
     return out
 
 
-ACTION_KINDS = ("press", "hold", "toggle", "insert")
+ACTION_KINDS = ("press", "hold", "toggle", "insert", "update")
 
 
 def parse_script(data: Any) -> Script:
