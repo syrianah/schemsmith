@@ -537,6 +537,7 @@ class SchemsmithTools:
                 "resource": res.resource,
                 "commands": res.commands,
                 "notes": res.notes[: L.MAX_PAGE_ITEMS],
+                "warnings": res.warnings,
                 "dry_run": res.dry_run,
             }
         )

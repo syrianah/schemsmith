@@ -63,6 +63,8 @@ def cmd_install(args: argparse.Namespace) -> int:
         print(f"{verb} {res.mcmeta_path.as_posix()} (data pack format {res.pack_format})")
     for note in res.notes:
         print(f"note: {note}")
+    for warning in res.warnings:
+        print(f"warning: {warning}")
     print("In the game (creative, cheats on):")
     for cmd in res.commands:
         print(f"  {cmd}")
