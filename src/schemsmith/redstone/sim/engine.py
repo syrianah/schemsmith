@@ -24,7 +24,8 @@ power graph is rebuilt after every change of the block layout.
 
 Simplifications (also in :data:`SIMPLIFICATIONS`): no entities; droppers pick the first
 non-empty slot (the game picks a random one); a block change updates every
-component within two blocks (the game's update shapes differ per block);
+component within two blocks, except jukeboxes, levers and buttons, which update
+only the game's neighbours (other update shapes differ per block);
 the copper bulb toggles without delay; comparators reading jukeboxes output 15.
 """
 
@@ -52,11 +53,15 @@ SIMPLIFICATIONS = (
     "are not modelled",
     "droppers/dispensers use their first non-empty slot (the game picks a random slot)",
     "a state change updates every component within 2 blocks (a jukebox: only its 6 neighbours; "
-    "other game update shapes differ)",
+    "a lever or button: its 6 neighbours and those of its support; other game update shapes "
+    "differ)",
     "the copper bulb toggles during the neighbour update (no scheduled delay)",
     "comparators read each disc's value from a jukebox (15 for discs not in the table); "
     "song lengths are approximate",
     "target blocks, daylight detectors, sculk sensors, tripwire and trapped chests emit nothing",
+    "the run starts from the saved states: blocks that check their power when placed (a piston "
+    "extends, TNT lights, whether placed by /place template, Litematica or a player) are not "
+    "re-checked at tick 0",
 )
 
 PRIO_TICK = 0
@@ -286,6 +291,12 @@ class Simulator:
             shell = self._shells[p] = _shell(p)
         self.notify(shell)
         self._record(p)
+
+    def switched(self, p: Vec3, s: BlockState) -> None:
+        """A lever or button changed: its six neighbours and the six neighbours of the block
+        it hangs on hear it (``updateNeighbours``), nothing else (issue #38, #12.2)."""
+        self.changed_near(p)
+        self.changed_near(step(p, C.attached_dir(s) or Dir.DOWN))
 
     def changed_near(self, p: Vec3) -> None:
         """Like :meth:`changed`, but only the six neighbours hear it (``updateNeighborsAt``).
@@ -767,8 +778,7 @@ class Simulator:
                 self.schedule(p, "button_release", self.holds[p] - self.t)
                 return
             if self._set_flag(p, "powered", False):
-                self.changed(p)
-                self.changed(step(p, C.attached_dir(s) or Dir.DOWN))
+                self.switched(p, s)
         elif kind == "observer_on":
             self._set_flag(p, "powered", True)
             self.changed(p)
@@ -970,16 +980,14 @@ class Simulator:
                 self.holds[p] = self.t + int(a.duration)
             if s.get("powered") != "true":
                 self._set_flag(p, "powered", True)
-                self.changed(p)
-                self.changed(step(p, C.attached_dir(s) or Dir.DOWN))
+                self.switched(p, s)
                 self.event("press", p)
             self.schedule(p, "button_release", pulse if a.kind == "press" else int(a.duration))
         elif a.kind == "toggle":
             if s.name != "minecraft:lever":
                 raise ScriptError(f"toggle at {p}: not a lever ({s})")
             self._set_flag(p, "powered", s.get("powered") != "true")
-            self.changed(p)
-            self.changed(step(p, C.attached_dir(s) or Dir.DOWN))
+            self.switched(p, s)
             self.event("toggle", p)
         elif a.kind == "update":
             self.notify([step(p, d) for d in ALL])

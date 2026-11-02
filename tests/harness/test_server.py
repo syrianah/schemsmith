@@ -7,8 +7,15 @@ from pathlib import Path
 
 import pytest
 
+from schemsmith.formats import encode_structure
 from schemsmith.harness.eula import EulaNotAccepted
-from schemsmith.harness.server import GameServer, HarnessError, ServerConfig, server_properties
+from schemsmith.harness.server import (
+    ORIGIN,
+    GameServer,
+    HarnessError,
+    ServerConfig,
+    server_properties,
+)
 from schemsmith.harness.verify import verify
 from schemsmith.redstone.sim import parse_script
 from tests.redstone.circuits import build
@@ -123,3 +130,20 @@ def test_server_without_the_copy_refuses(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr("schemsmith.harness.server.copy_acceptance", lambda *a: None)
     with pytest.raises(HarnessError, match="exited during start-up"):
         GameServer(cfg).start()
+
+
+def test_place_can_use_raw_template_bytes(tmp_path: Path) -> None:
+    """``raw`` replaces the written .nbt before /reload (the #39 raw-vs-writer game case)."""
+    s = build({(1, 1, 1): "stone"}, floor=False)
+    s.data_version = 4671
+    other = build({(1, 1, 1): "glass"}, floor=False)
+    other.data_version = 4671
+    raw, _ = encode_structure(other, "vanilla")
+    with GameServer(config(tmp_path, keep=True)) as server:
+        server.place(s, "raw_case", raw=raw)
+        nbt = next((server.world / "datapacks").rglob("raw_case.nbt"))
+        assert nbt.read_bytes() == raw
+        x, y, z = ORIGIN
+        assert "passed" in server.command(
+            f"execute if block {x + 1} {y + 1} {z + 1} minecraft:glass"
+        )

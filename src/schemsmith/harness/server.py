@@ -206,8 +206,20 @@ class GameServer:
         assert self.workdir is not None
         return self.workdir / "world"
 
-    def place(self, structure: Structure, name: str, origin: tuple[int, int, int] = ORIGIN) -> str:
-        """Install ``structure`` as a data pack and ``/place template`` it at ``origin``."""
+    def place(
+        self,
+        structure: Structure,
+        name: str,
+        origin: tuple[int, int, int] = ORIGIN,
+        *,
+        raw: bytes | None = None,
+    ) -> str:
+        """Install ``structure`` as a data pack and ``/place template`` it at ``origin``.
+
+        ``raw``: the ``.nbt`` bytes to place instead of what the writer produced (for a
+        game test that compares a hand-made template with schemsmith's, #39); the size
+        still comes from ``structure``.
+        """
         deadline = time.monotonic() + 60
         while not (self.world / "level.dat").is_file():
             if time.monotonic() > deadline:
@@ -223,6 +235,8 @@ class GameServer:
             mc_version=self.config.mc_version,
             overwrite=True,
         )
+        if raw is not None:
+            res.structure_path.write_bytes(raw)
         self.command("reload")
         self.command('datapack enable "file/schemsmith_harness"')
         _, size = structure.bounds()

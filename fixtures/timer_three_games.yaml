@@ -17,4 +17,7 @@ watch:
   - {pos: [12, 1, 1], label: dropper}
 expect:
   - {events: bell, count: 3}
+  - {at: 120, pos: [12, 1, 7], powered: false}    # each round is really running (#38)
+  - {at: 3500, pos: [12, 1, 7], powered: false}
+  - {at: 6900, pos: [12, 1, 7], powered: false}
   - {events: disc_start, count: 3}

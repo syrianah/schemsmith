@@ -20,9 +20,11 @@ Actions use commands, since a dedicated server has no player:
   ``powered`` changed (the release is scheduled by the runner: 20 gt for stone
   buttons, 30 gt for wooden ones, or the ``for`` of a hold). ``/setblock`` only
   updates the neighbours of the button, but a real press also updates the
-  neighbours of the block the button sits on, so the runner briefly swaps that
-  block for another solid block and back. That swap is skipped for blocks with a
-  block entity and for non-conductive blocks (they carry no strong power).
+  neighbours of the block the button sits on. For a conductive support (stone) the
+  runner briefly swaps it for another solid block and back, which keeps the button
+  attached. A non-conductive support (a piston, glass) is never swapped, since that
+  can pop the lever (#38, kelp farm): the runner swaps one of its other neighbours
+  instead (air or a conductive block), so the support itself gets the update.
 * ``update``: replace the block at the position and put it back, so its neighbours
   react (the simulator notifies the same six neighbours).
 * ``insert``: ``/item replace`` into free slots. A disc put into a jukebox this way may
@@ -33,7 +35,7 @@ from __future__ import annotations
 
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -48,6 +50,8 @@ from schemsmith.registry.categories import is_conductive
 
 SETTLE_TICKS = 20
 """Game ticks stepped after placing and filling containers, before tick 0."""
+MAX_WAIT_TICKS = 200
+"""Most extra settle ticks spent waiting for ``wait_empty`` containers to pass their items on."""
 STEP_TIMEOUT_S = 30.0
 TICK_RATE = 1000
 """``/tick rate`` while stepping, so a step does not wait 50 ms of wall time."""
@@ -103,6 +107,8 @@ class GameResult:
     commands: int = 0
     elapsed_s: float = 0.0
     notes: list[str] = field(default_factory=list)
+    waited: int = 0
+    """Extra settle ticks spent on ``wait_empty`` before tick 0."""
 
     @property
     def passed(self) -> bool:
@@ -151,9 +157,14 @@ class GameRunner:
         structure: Structure,
         script: Script,
         origin: Vec3,
-        timeline: bool = False,
+        timeline: bool | Sequence[tuple[int, int]] = False,
         sleep: Callable[[float], None] = time.sleep,
+        wait_empty: Sequence[Vec3] = (),
     ) -> None:
+        """``timeline``: record the watched blocks every tick (True), or only inside these
+        ``(first, last)`` tick windows; a window may start below 0 to cover the settle
+        ticks after placing. ``wait_empty``: after settling, step until these containers
+        (a hopper feeding a jukebox) are empty, at most :data:`MAX_WAIT_TICKS`."""
         check_observable(script)
         self.rcon = rcon
         self.structure = structure
@@ -161,7 +172,11 @@ class GameRunner:
         self.region = structure.region(script.region) if script.region else structure.regions[0]
         off = region_offset(structure, self.region)
         self.origin = (origin[0] + off[0], origin[1] + off[1], origin[2] + off[2])
-        self.with_timeline = timeline
+        self.windows: list[tuple[int, int]] | None = (
+            None if isinstance(timeline, bool) else [(int(a), int(b)) for a, b in timeline]
+        )
+        self.with_timeline = bool(timeline)
+        self.wait_empty: list[Vec3] = [(int(p[0]), int(p[1]), int(p[2])) for p in wait_empty]
         self.sleep = sleep
         self.result = GameResult(script.name, script.ticks)
         self.levers: dict[Vec3, bool] = {}
@@ -259,10 +274,32 @@ class GameRunner:
         return True
 
     def set_powered(self, p: Vec3, on: bool) -> None:
-        """Set a button/lever's ``powered`` and update like a real press."""
+        """Set a button/lever's ``powered`` and update like a real press.
+
+        A real press updates the neighbours of the block the button or lever hangs on.
+        A conductive support is swapped and put back (it keeps the button attached).
+        Any other support (a piston) gets its update from one of its other neighbours,
+        so the lever never loses its support (#38: the kelp farm lever popped).
+        """
         s = self.local(p).with_properties(powered="true" if on else "false")
         self.cmd(f"setblock {self.at(p)} {s}")
-        self.touch(step(p, C.attached_dir(s) or Dir.DOWN))
+        support = step(p, C.attached_dir(s) or Dir.DOWN)
+        if is_conductive(self.local(support)):
+            self.touch(support)
+        else:
+            self.touch_neighbour(support, avoid=p)
+
+    def touch_neighbour(self, p: Vec3, avoid: Vec3) -> Vec3 | None:
+        """Swap a neighbour of ``p`` (air or a conductive block inside the structure,
+        never ``avoid``) and put it back, so ``p`` gets a neighbour update. Returns it."""
+        for d in (Dir.DOWN, Dir.UP, Dir.NORTH, Dir.SOUTH, Dir.WEST, Dir.EAST):
+            n = step(p, d)
+            if n == avoid or not self.region.contains(*n):
+                continue
+            ns = self.local(n)
+            if (ns.is_air or is_conductive(ns)) and self.touch(n):
+                return n
+        return None
 
     def do_action(self, a: Any) -> None:
         """One script action."""
@@ -330,7 +367,23 @@ class GameRunner:
         for p, items in self.script.containers.items():
             self.fill(p, items)
         self.time0 = self.gametime()
-        self.step(SETTLE_TICKS)
+        if self._recording(-SETTLE_TICKS):
+            for k in range(SETTLE_TICKS):
+                self._record(k - SETTLE_TICKS)
+                self.step(1)
+        else:
+            self.step(SETTLE_TICKS)
+        waited = 0
+        while self.wait_empty and any(self.items(q) for q in self.wait_empty):
+            if waited >= MAX_WAIT_TICKS:
+                left = {q: self.items(q) for q in self.wait_empty}
+                raise GameError(
+                    f"containers {left} still hold items {SETTLE_TICKS + waited} ticks after "
+                    "placing: the hopper did not pass them on"
+                )
+            self.step(1)
+            waited += 1
+        self.result.waited = waited
         self.time0 += self.step_count
         self.step_count = 0
 
@@ -357,8 +410,8 @@ class GameRunner:
                 if now != last[key] and now == to:
                     self.result.events.append(SimEvent(t, kind, p))
                 last[key] = now
-            if self.with_timeline:
-                self._record()
+            if self._recording(t):
+                self._record(t)
             for q in probes.get(t, []):
                 snaps[(t, q)] = self._snapshot(q)
             if t >= self.script.ticks:
@@ -422,14 +475,24 @@ class GameRunner:
                 snap[key] = int(m.group(1)) if m else None
         return snap
 
-    def _record(self) -> None:
+    def _recording(self, t: int) -> bool:
+        if not self.with_timeline:
+            return False
+        if self.windows is None:
+            return t >= 0
+        return any(a <= t <= b for a, b in self.windows)
+
+    def _record(self, t: int) -> None:
+        """Watched blocks at tick ``t``, in the simulator's format (``enabled=False, items=3``)."""
         for w in self.script.watch:
             s = self.local(w.pos)
             parts = [f"{k}={self.flag(w.pos, k)}" for k in BOOL_KEYS if s.get(k) is not None]
+            if slots_for(s.name) is not None:
+                parts.append(f"items={self.items(w.pos)}")
             value = ", ".join(parts)
             prev = next((e for e in reversed(self.result.timeline) if e.pos == w.pos), None)
             if prev is None or prev.value != value:
-                self.result.timeline.append(TimelineEntry(self.step_count, w.label, w.pos, value))
+                self.result.timeline.append(TimelineEntry(t, w.label, w.pos, value))
 
     def _checks(self, snaps: dict[tuple[int, Vec3], dict[str, Any]]) -> list[Check]:
         out = []

@@ -34,6 +34,8 @@ class Case:
     issue: str = "#12"
     note: str = ""
     """What the case can and cannot show in the game, and what to look at when it fails."""
+    wait_empty: list[Pos] = field(default_factory=list)
+    """Game only: before tick 0, step until these setup containers are empty (bounded)."""
 
 
 def sim_expectations(case: Case) -> Script:
@@ -110,10 +112,15 @@ def cases() -> list[Case]:
                 ]
             },
             issue="#38",
+            wait_empty=[(1, 2, 1)],
             note=(
                 "The disc goes in through a hopper, like the timer's dropper, because "
                 "/item replace may not start playback (#38: the first run read 0). "
-                "music_disc_cat should read 2 (the simulator's per-disc table). If "
+                "music_disc_cat should read 2 (the simulator's per-disc table). Second run: "
+                "flaky (failed in the full run, passed alone), so the game run now steps "
+                "until the hopper is empty (at most MAX_WAIT_TICKS) before tick 0; the "
+                "disc plays for minutes, so tick 25 reads a playing jukebox either way. If "
+                "the wait times out, the error says the hopper kept the disc. If "
                 "has_record is True but output is 0, run on the server: "
                 "data get block <comparator> OutputSignal."
             ),
@@ -196,36 +203,48 @@ def cases() -> list[Case]:
             _module("kelp_farm"),
             10,
             [{"at": 2, "toggle": [0, 3, 0]}],
-            [
-                (6, (0, 3, 0), "block"),
-                (6, (0, 3, 0), "powered"),
-                (6, (0, 3, 1), "extended"),
-                (6, (1, 3, 1), "block"),
-            ],
+            [(t, (0, 3, 0), "block") for t in (2, 3, 4, 5, 6)]
+            + [(t, (0, 3, 1), "extended") for t in (2, 3, 4, 5, 6)]
+            + [(6, (0, 3, 0), "powered"), (6, (1, 3, 1), "block")],
             issue="#38",
             note=(
-                "The first run's piston stayed retracted. The probes say which step fails: "
-                "lever gone (cannot hang on a piston face), lever on but piston retracted "
-                "(no update reached it), or piston out but the kelp still there. The runner "
-                "now also replaces the piston the lever hangs on and puts it back."
+                "Run 1: the piston stayed retracted (/setblock of the lever did not update "
+                "it). Run 2: the lever was gone at tick 6, because the runner replaced the "
+                "piston the lever hangs on. The runner now never replaces a lever's "
+                "non-conductive support: it swaps the stone under the piston instead, so "
+                "the piston gets the update a hand flip gives. Reading the probes, ticks "
+                "2..6: lever gone at tick 2 = the harness still pops it; lever there until "
+                "the piston extends, then gone = an extending piston drops a lever on its "
+                "side (its base is no longer a full block), so the module needs the lever "
+                "on a stone block; lever and extended piston at 6 but kelp still there = "
+                "the cut does not work."
             ),
         )
     )
     out.append(
         Case(
-            "redstone block beside the position above a piston (QC, #12.2)",
+            "lever beside the position above a piston (QC, #12.2)",
             _s(
                 {
                     (2, 1, 2): "piston[extended=false,facing=north]",
-                    (3, 2, 2): "redstone_block",
+                    (4, 1, 2): "stone",
+                    (4, 2, 2): "stone",  # the lever hangs on it, away from the piston
+                    (3, 2, 2): "lever[face=wall,facing=west,powered=false]",
                 }
             ),
             20,
-            [{"at": 10, "update": [2, 0, 2]}],
-            [(5, (2, 1, 2), "extended"), (15, (2, 1, 2), "extended")],
+            [{"at": 3, "toggle": [3, 2, 2]}, {"at": 10, "update": [2, 0, 2]}],
+            [(t, (2, 1, 2), "extended") for t in (2, 5, 8, 12, 15)],
             note=(
-                "/place template does no block updates, so the piston only notices the "
-                "quasi-power after the update of the floor under it at tick 10."
+                "Run 2 used a redstone block placed with the template: the piston was "
+                "already out at tick 5, before the update at 10, and no harness step touches "
+                "it before then (place, freeze, settle). A piston checks its power when it is "
+                "placed (onPlace), quasi-power included, so a template extends it at once; "
+                "the same happens when a player or Litematica places it. Now the power "
+                "arrives after placing: the lever at (3,2,2) powers the space above the "
+                "piston, but neither the lever nor the stone it hangs on is next to the "
+                "piston, so the toggle at 3 does not update it (still retracted at 5 and 8). "
+                "The floor update at 10 does: extended at 12 and 15."
             ),
         )
     )

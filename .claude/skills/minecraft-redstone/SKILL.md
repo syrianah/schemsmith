@@ -45,7 +45,9 @@ Get these wrong and the whole circuit is mirrored or dead.
 
 ## 3. Quasi-connectivity (QC)
 
-**Droppers, dispensers and pistons also count as powered if the position directly above them would be powered**, even if nothing powers them directly. The QC check does not cause an update, so the device may only notice later, when something next to it changes (a "BUD").
+**Droppers, dispensers and pistons also count as powered if the position directly above them would be powered**, even if nothing powers them directly. The QC check does not cause an update, so the device may only notice later, when something next to it changes (a "BUD"). Exception: a piston checks its power when it is **placed**, so a piston placed where it is already quasi-powered extends at once (seen with `/place template`, #38).
+
+A lever or button updates only its own six neighbours and the six neighbours of the block it hangs on. A QC device two blocks away does not hear the flip.
 
 Classic bug (from schemsmith's own `fixtures/timer_v1_qc_dropper.litematic`): a torch locks a hopper. A dropper sits directly under that hopper. The torch also QC-powers the dropper, so the dropper fires when the torch turns **back on** instead of when the button is pressed, and drops its item into the re-locked hopper.
 

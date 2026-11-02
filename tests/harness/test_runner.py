@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from schemsmith.core import Region, Structure
-from schemsmith.harness.game import GameRunner, region_offset
+from schemsmith.harness.game import GameError, GameRunner, region_offset
 from schemsmith.redstone.sim import parse_script
 from schemsmith.redstone.sim.script import ScriptError
 from tests.harness.fake_world import FakeWorld, WorldCommands
@@ -122,3 +122,91 @@ def test_region_offset_of_a_second_region() -> None:
     b = Region((2, 2, 2), name="b", position=(5, -3, 1))
     s = Structure(regions=[a, b])
     assert region_offset(s, b) == (5, 0, 1) and region_offset(s, a) == (0, 3, 0)
+
+
+# round 5 (#38 second run): lever on a piston, waiting for a hopper, settle timeline ----------
+
+KELP = {
+    (0, 1, 0): "lever[face=wall,facing=north,powered=false]",  # hangs on the piston south of it
+    (0, 1, 1): "piston[extended=false,facing=east]",
+}
+
+
+def test_a_lever_on_a_piston_never_swaps_the_piston() -> None:
+    s = build(KELP)
+    world = FakeWorld()
+    world.place_region({p: str(st) for p, st in s.regions[0].blocks()}, ORIGIN)
+    script = parse_script({"ticks": 5, "actions": [{"at": 1, "toggle": [0, 1, 0]}]})
+    GameRunner(WorldCommands(world), s, script, ORIGIN).run()
+    piston = f"{ORIGIN[0]} {ORIGIN[1] + 1} {ORIGIN[2] + 1}"
+    floor = f"{ORIGIN[0]} {ORIGIN[1]} {ORIGIN[2] + 1}"  # the stone under the piston
+    sets = [c for c in world.log if c.startswith("setblock")]
+    assert not any(c.startswith(f"setblock {piston} ") for c in sets)
+    assert f"setblock {floor} minecraft:cobblestone" in sets
+    assert sets[-1] == f"setblock {floor} minecraft:stone"
+
+
+def test_a_lever_on_stone_still_swaps_the_stone() -> None:
+    _, runner = setup({"ticks": 3, "actions": [{"at": 1, "toggle": [1, 1, 3]}]})
+    runner.run()
+    under = f"{ORIGIN[0] + 1} {ORIGIN[1]} {ORIGIN[2] + 3}"
+    log = runner.rcon.world.log  # type: ignore[attr-defined]
+    assert f"setblock {under} minecraft:cobblestone" in log
+
+
+def _drain_after(ticks: int, pos: tuple[int, int, int]) -> object:
+    start: list[int] = []
+
+    def hook(w: FakeWorld) -> None:
+        start.append(w.time)
+        if len(start) >= ticks:
+            w.inv[pos] = {}
+
+    return hook
+
+
+def test_wait_empty_steps_until_the_hopper_passed_its_items_on() -> None:
+    hopper = (ORIGIN[0] + 5, ORIGIN[1] + 1, ORIGIN[2] + 5)
+    script = {
+        "ticks": 3,
+        "setup": {
+            "containers": [{"pos": [5, 1, 5], "items": [{"id": "minecraft:stone", "count": 1}]}]
+        },
+        "expect": [],
+    }
+    s = build(BLOCKS)
+    world = FakeWorld()
+    world.place_region({p: str(st) for p, st in s.regions[0].blocks()}, ORIGIN)
+    world.hooks.append(_drain_after(27, hopper))  # type: ignore[arg-type]
+    r = GameRunner(
+        WorldCommands(world), s, parse_script(script), ORIGIN, wait_empty=[(5, 1, 5)]
+    ).run()
+    assert r.waited == 7  # 20 settle ticks + 7
+    world2 = FakeWorld()
+    world2.place_region({p: str(st) for p, st in s.regions[0].blocks()}, ORIGIN)
+    runner = GameRunner(
+        WorldCommands(world2), s, parse_script(script), ORIGIN, wait_empty=[(5, 1, 5)]
+    )
+    with pytest.raises(GameError, match="did not pass them on"):
+        runner.run()
+
+
+def test_timeline_windows_cover_the_settle_ticks() -> None:
+    script = {
+        "ticks": 40,
+        "actions": [{"at": 30, "toggle": [1, 1, 3]}],
+        "watch": [{"pos": [3, 1, 1], "label": "bell"}, {"pos": [5, 1, 5], "label": "hopper"}],
+        "expect": [],
+    }
+    s = build(BLOCKS)
+    world = FakeWorld()
+    world.place_region({p: str(st) for p, st in s.regions[0].blocks()}, ORIGIN)
+    r = GameRunner(WorldCommands(world), s, parse_script(script), ORIGIN, timeline=[(-20, 5)]).run()
+    assert [(e.tick, e.label, e.value) for e in r.timeline] == [
+        (-20, "bell", "powered=False"),
+        (-20, "hopper", "enabled=True, items=0"),
+    ]  # nothing changes until 5; the toggle at 30 is outside the window
+    fresh = FakeWorld()
+    fresh.place_region({p: str(st) for p, st in s.regions[0].blocks()}, ORIGIN)
+    full = GameRunner(WorldCommands(fresh), s, parse_script(script), ORIGIN, timeline=True).run()
+    assert (31, "bell", "powered=True") in [(e.tick, e.label, e.value) for e in full.timeline]

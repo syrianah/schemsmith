@@ -9,7 +9,16 @@ shulker box item in the old item format (``{id, Count, tag: {BlockEntityTag: {It
   places the shulker box as a block, which is then read too.
 
 The assertion lists each shape and whether its bone meal arrived, so a failure says
-which shape breaks. Run: uv run pytest -m game --run-game tests/harness
+which shape breaks. These containers all have a block-entity ``id``; the second run
+(#39) kept every shape.
+
+The owner then found the cause: Litematica writes block entities without ``id``, and
+without it the game cannot pick the data fixer, so the old items are never upgraded.
+``test_chest_without_block_entity_id`` places the same chest twice: once from a
+template written raw (no ``id``, as Litematica has it), once through schemsmith's
+writer, which now adds the ``id`` from the block (PR #42).
+
+Run: uv run pytest -m game --run-game tests/harness
 """
 
 from __future__ import annotations
@@ -17,9 +26,10 @@ from __future__ import annotations
 import pytest
 
 from schemsmith.core import Region, Structure
+from schemsmith.formats import encode_structure
 from schemsmith.harness.game import GameRunner
 from schemsmith.harness.server import GameServer
-from schemsmith.nbt import Byte, Compound, List, String, TagType
+from schemsmith.nbt import Byte, Compound, List, NamedTag, String, TagType, decode, encode
 from schemsmith.redstone.sim import parse_script
 from tests.core.test_old_items import old_shulker
 from tests.harness.conftest import next_origin
@@ -80,3 +90,51 @@ def test_old_shulker_items_keep_their_contents(game_server: GameServer) -> None:
         arrived[name] = "contents kept" if "bone_meal" in out else f"EMPTY: {out[:200]}"
     broken = {k: v for k, v in arrived.items() if v != "contents kept"}
     assert broken == {}, f"#39: shapes that lose contents: {broken}; all: {arrived}"
+
+
+# a chest WITHOUT block-entity id (the real cause of #39) ----------------------------------
+
+BARE = (1, 1, 1)
+
+
+def bare_chest() -> Structure:
+    """A 1.20.1 chest as Litematica stores it: block entity ``{Items: [...]}``, no ``id``."""
+    r = Region((3, 2, 3))
+    for x in range(3):
+        for z in range(3):
+            r.set_block(x, 0, z, "minecraft:stone")
+    r.set_block(*BARE, "minecraft:chest[facing=north,type=single,waterlogged=false]")
+    item = old_shulker(lore=True)
+    item["Slot"] = Byte(0)
+    r.block_entities[BARE] = Compound({"Items": List(TagType.COMPOUND, [item])})
+    return Structure(regions=[r], data_version=3465)
+
+
+def raw_template(s: Structure) -> bytes:
+    """The .nbt as written before PR #42: block entities keep their missing ``id``."""
+    data, _ = encode_structure(s, "vanilla")
+    root = decode(data).tag
+    assert isinstance(root, Compound)
+    for b in root.get_list("blocks"):
+        if isinstance(b, Compound) and isinstance(b.get("nbt"), Compound):
+            b.get_compound("nbt").pop("id", None)
+    return encode(NamedTag("", root), compressed=True)
+
+
+def test_chest_without_block_entity_id(game_server: GameServer) -> None:
+    s = bare_chest()
+    result: dict[str, str] = {}
+    for path, raw in (("raw (no id)", raw_template(s)), ("schemsmith writer", None)):
+        origin = next_origin()
+        game_server.place(s, f"bare_chest_{origin[0]}", origin, raw=raw)
+        x, y, z = (origin[i] + BARE[i] for i in range(3))
+        out = game_server.command(f"data get block {x} {y} {z} Items")
+        result[path] = "contents kept" if "bone_meal" in out else f"EMPTY: {out[:200]}"
+    problems = []
+    if result["schemsmith writer"] != "contents kept":
+        problems.append("schemsmith writer path LOST the contents: the id filling does not fix #39")
+    if result["raw (no id)"] == "contents kept":
+        problems.append(
+            "raw path kept the contents: a missing id is not what empties the boxes here"
+        )
+    assert problems == [], f"{problems}; results: {result}"

@@ -9,6 +9,7 @@ containers) without a game.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 from schemsmith.core import BlockState
@@ -31,6 +32,8 @@ class FakeWorld:
         self.log: list[str] = []
         self.stopped = False
         self.placed: list[str] = []
+        self.hooks: list[Callable[[FakeWorld], None]] = []
+        """Run after every tick (tests add tiny physics, e.g. a hopper emptying)."""
 
     # physics ------------------------------------------------------------------
 
@@ -43,6 +46,8 @@ class FakeWorld:
         for p, s in list(self.blocks.items()):
             if s.name == "minecraft:bell":
                 self.blocks[p] = s.with_properties(powered="true" if powered else "false")
+        for hook in self.hooks:
+            hook(self)
 
     # commands -----------------------------------------------------------------
 
