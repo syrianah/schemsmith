@@ -196,3 +196,9 @@ first 8 of 8 positions (schematic, world):
 ```
 
 Here the TNT is all there, just in the wrong place: the same block missing at some positions and extra at others usually means the part was placed a few blocks off. The exit code is 0 when everything matches and 1 when something differs, so scripts can use it. The MCP tool `world_diff` does the same with bounded output.
+
+To save something that was built by hand in the world as a schematic, `world extract` reads a box (both corners included, in any order) and writes `.litematic`, `.nbt` or `.schem`, with the block entities (chest contents, signs) but without entities (item frames, minecarts):
+
+`uv run schemsmith world extract "saves/My World" --from 100 64 -20 --to 112 70 -8 -o shed.litematic`
+
+It refuses to write inside the world folder, refuses boxes that touch ungenerated chunks, and replaces an existing output only with `--overwrite`.
