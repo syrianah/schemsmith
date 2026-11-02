@@ -2,7 +2,7 @@
 
 A schematic smith for AI agents: design, lint, simulate and fix Minecraft schematics (buildings, farms and redstone machines) through MCP or the command line, ready to build in-game with [Litematica](https://github.com/maruohon/litematica).
 
-> **Status: early development.** Reading/writing schematics, validation, the redstone linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)), previews, material lists, build guides and the MCP server work; see [docs/plans/index.md](docs/plans/index.md) for progress.
+> **Status: early development.** Working today: reading and writing schematics, validation, the redstone and block placement linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)), previews, material lists, build guides, installing into a world for `/place template`, and the MCP server. In-game harness: in progress, owner's machine only. Progress: [docs/plans/index.md](docs/plans/index.md).
 
 ## Why
 
@@ -101,9 +101,21 @@ Ask the agent to "find and fix the redstone bugs in `timer_v1_qc_dropper.litemat
 2. `schematic_edit` with each diagnostic's `fix`, first as a preview, then with `apply=true` → `timer_v1_qc_dropper.edited.litematic`;
 3. `redstone_lint` on the new file → both rules gone. The original file is untouched.
 
+## Verify in the real game
+
+The harness runs a schematic and an action script on a real vanilla server and compares the result with the simulator. It runs **only on the owner's machine**. It needs the owner's own `~/.schemsmith/eula.txt`, which the owner creates after reading https://aka.ms/MinecraftEULA; schemsmith never creates it. Then:
+
+```bash
+uv run pytest -m game --run-game tests/harness
+```
+
+Design and rules: `docs/adr/0002-harness.md`, in [PR #37](https://github.com/syrianah/schemsmith/pull/37) until phase 06 is merged.
+
 ## Known limitations
 
+- Not on PyPI yet (OQ-5): run it from a checkout of this repo.
 - Filled shulker boxes (and other container items) in schematics made before Minecraft 1.20.5 can arrive empty when placed in 26.x; schemsmith warns about them ([#39](https://github.com/syrianah/schemsmith/issues/39)).
+- Whether a block conducts redstone power is guessed from its name ([#9](https://github.com/syrianah/schemsmith/issues/9)); findings that depend on it say so.
 
 ## License
 
