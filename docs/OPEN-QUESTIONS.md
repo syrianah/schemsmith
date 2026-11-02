@@ -7,7 +7,7 @@ Decisions only the owner (`@syrianah`) can make. Agents never resolve them; they
 | OQ-2 | Which Minecraft versions are supported at launch? | @syrianah | Registry generated for `1.21.11` and `26.3`; other versions behind a `--mc-version` option | Phase 03 (uses the default) |
 | OQ-3 | Preview renderer: pure Python, or misode/deepslate (TypeScript, MIT) via Node? | @syrianah | Pure Python (ASCII slices + simple PNG with per-block colors, no Mojang textures) | Phase 09 (uses the default) |
 | OQ-4 | May generated block registries (data derived from Mojang's data generator) be committed, or must users regenerate them locally? | @syrianah | Commit compact registries plus the script that regenerates them | Phase 03 (uses the default) |
-| OQ-5 | Publish to PyPI as `schemsmith`, and who owns the PyPI project? | @syrianah | Not published; release phase only prepares the build | Phase 10 (BLOCKED) |
+| OQ-5 | Publish to PyPI as `schemsmith`, and who owns the PyPI project? | @syrianah | **Not now (2026-11-02): install from a clone; PyPI maybe later.** Nothing is published. The question stays open for later. | Phase 10 (BLOCKED) |
 
 ## Answered
 

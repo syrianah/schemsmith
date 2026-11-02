@@ -2,7 +2,18 @@
 
 A schematic smith for AI agents: design, lint, simulate and fix Minecraft schematics (buildings, farms and redstone machines) through MCP or the command line, ready to build in-game with [Litematica](https://github.com/maruohon/litematica).
 
-> **Status: early development.** Working today: reading and writing schematics, validation, the redstone and block placement linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)), previews, material lists, build guides, installing into a world for `/place template`, and the MCP server. In-game harness: in progress, owner's machine only. Progress: [docs/plans/index.md](docs/plans/index.md).
+> **Status: early development.** Working today: reading and writing schematics, validation, the redstone and block placement linter, the tick simulator, the module library ([docs/modules.md](docs/modules.md)), previews, material lists, build guides, installing into a world for `/place template`, reading a world (`world diff`, `world extract`), the MCP server, and the in-game harness (it runs only where someone accepted the Minecraft EULA themselves). Progress: [docs/plans/index.md](docs/plans/index.md).
+
+## Install
+
+schemsmith is not published on PyPI. Install it from a clone of this repo:
+
+```bash
+git clone https://github.com/syrianah/schemsmith
+cd schemsmith
+uv sync
+uv run schemsmith --version
+```
 
 ## Why
 
@@ -29,7 +40,7 @@ AI coding agents build schemsmith phase by phase. One phase = one agent = one pu
 
 schemsmith ships an MCP server, `schemsmith-mcp`, that speaks stdio. Every path a tool receives is confined to `--root` (symlinks included), and responses are bounded: lists are paginated and oversized results come back as `response_limited` with a hint.
 
-schemsmith is not on PyPI yet (OQ-5), so run it from a checkout of this repo.
+schemsmith is installed from a clone of this repo ([Install](#install)).
 
 **Claude Code:**
 
@@ -108,7 +119,7 @@ Ask the agent to "find and fix the redstone bugs in `timer_v1_qc_dropper.litemat
 
 ## Verify in the real game
 
-The harness runs a schematic and an action script on a real vanilla server and compares the result with the simulator. It runs **only on the owner's machine**. It needs the owner's own `~/.schemsmith/eula.txt`, which the owner creates after reading https://aka.ms/MinecraftEULA; schemsmith never creates it. Then:
+The harness runs a schematic and an action script on a real vanilla server and compares the result with the simulator. It runs only on a machine where someone read the Minecraft EULA at https://aka.ms/MinecraftEULA and accepted it themselves, by creating `~/.schemsmith/eula.txt` (on Windows `%USERPROFILE%\.schemsmith\eula.txt`). schemsmith never creates that file. Then:
 
 ```bash
 uv run pytest -m game --run-game tests/harness
@@ -118,8 +129,9 @@ Design and rules: [docs/adr/0002-harness.md](docs/adr/0002-harness.md).
 
 ## Known limitations
 
-- Not on PyPI yet (OQ-5): run it from a checkout of this repo.
-- Filled shulker boxes in Litematica files made before Minecraft 1.20.5 arrived empty in 26.x because the chests had no block-entity `id`. schemsmith now adds the missing `id` when writing `.nbt` and `.schem`, and warns only when it cannot; the owner's next game run confirms the fix ([#39](https://github.com/syrianah/schemsmith/issues/39)).
+- Not published on PyPI: install from a clone ([Install](#install)).
+- Fixed and confirmed in the game: filled shulker boxes in Litematica files made before Minecraft 1.20.5 arrived empty, because the chests had no block-entity `id`. The `.nbt` and `.schem` writers now add it, and `validate` warns when it cannot ([#39](https://github.com/syrianah/schemsmith/issues/39), [#42](https://github.com/syrianah/schemsmith/pull/42)).
+- Fixed: comparators placed with `/place template` gave output 0 for a moment, because the template had no comparator block entity, so a machine could start by itself. The writers now add `OutputSignal` ([#50](https://github.com/syrianah/schemsmith/pull/50)). Reinstall templates made before that.
 - Whether a block conducts redstone power is guessed from its name ([#9](https://github.com/syrianah/schemsmith/issues/9)); findings that depend on it say so.
 
 ## License
