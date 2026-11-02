@@ -10,6 +10,7 @@ from typing import Any
 
 from schemsmith.core import Region, Structure
 from schemsmith.core.edits import apply_plan
+from schemsmith.core.old_items import find_old_container_items, old_items_warning
 from schemsmith.formats import FORMATS, load_structure, save_structure
 from schemsmith.render.ascii import layer_ascii
 
@@ -138,6 +139,9 @@ def cmd_convert(args: argparse.Namespace) -> int:
     s = load_structure(args.input)
     for note in s.notes:
         print(f"read: {note}")
+    warning = old_items_warning(find_old_container_items(s))
+    if warning:
+        print(f"warning: {warning}")
     report = save_structure(s, args.output, args.to, overwrite=args.overwrite)
     for note in report.notes:
         print(f"note: {note}")

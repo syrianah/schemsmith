@@ -5,6 +5,7 @@ from __future__ import annotations
 import difflib
 
 from schemsmith.core import BlockState, Structure
+from schemsmith.core.old_items import OLD_ITEMS_RULE, find_old_container_items, old_items_warning
 from schemsmith.diagnostics import Diagnostic, Severity
 from schemsmith.registry.experimental import default_release
 from schemsmith.registry.model import History, Registry
@@ -93,6 +94,18 @@ def validate_structure(
                 )
     if history is not None and structure.data_version:
         out.extend(_version_mismatches(structure, history, first_seen, multi))
+    old = find_old_container_items(structure)
+    if old:
+        out.append(
+            Diagnostic(
+                OLD_ITEMS_RULE,
+                Severity.WARNING,
+                old[0].pos,
+                old_items_warning(old),
+                "after placing, open each listed container and refill the shulker boxes (or "
+                "other container items) by hand; placing a fresh copy will not bring them back",
+            )
+        )
     return out
 
 

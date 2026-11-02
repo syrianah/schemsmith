@@ -25,6 +25,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from schemsmith.core import Structure
+from schemsmith.core.old_items import find_old_container_items, old_items_warning
 from schemsmith.formats import encode_structure, read_structure
 from schemsmith.registry import load_registry
 
@@ -63,6 +64,8 @@ class InstallResult:
     commands: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     dry_run: bool = False
+    warnings: list[str] = field(default_factory=list)
+    """Problems the game may cause after placing (e.g. old container items, issue #39)."""
 
 
 def resource_name(text: str) -> str:
@@ -199,7 +202,7 @@ def install_structure(
     if not dry_run:
         target.parent.mkdir(parents=True, exist_ok=True)
         if create_meta:
-            mcmeta.write_text(mcmeta_text(fmt), encoding="utf-8")
+            mcmeta.write_text(mcmeta_text(fmt), encoding="utf-8", newline="\n")
         tmp = target.with_name(target.name + ".schemsmith-tmp")
         tmp.write_bytes(data)
         tmp.replace(target)
@@ -213,6 +216,7 @@ def install_structure(
         commands=commands,
         notes=notes,
         dry_run=dry_run,
+        warnings=[w for w in [old_items_warning(find_old_container_items(structure))] if w],
     )
 
 
