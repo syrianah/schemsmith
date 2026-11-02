@@ -157,7 +157,7 @@ Ports: `input` (1, 4, 1), `output` (2, 1, 1).
 
 ### `kelp_farm`
 
-Kelp tube: glass column of water on dirt with kelp, a piston at y=3 cuts the kelp above the base when the lever (on the piston's north face) is flipped, hopper + chest at the top.
+Kelp tube: glass column of water on dirt with kelp, a piston at y=3 cuts the kelp above the base when the lever is flipped, hopper + chest at the top. The lever stands on a stone pillar beside the piston (north of it) and powers it as a neighbour. It is not on the piston's side: an extending piston base is not a full block, so a lever hanging there pops off (#51).
 
 | Parameter | Type | Default | Range | Meaning |
 |---|---|---|---|---|
