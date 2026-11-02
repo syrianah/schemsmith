@@ -43,8 +43,12 @@ def _kelp(height: int) -> Builder:
     b.set((0, 3, 1), "minecraft:piston[extended=false,facing=east]")  # cuts the kelp above the base
     for y in range(4, height + 2):
         b.set((0, y, 1), "minecraft:glass")
-    # the lever sits on the piston's north face and powers it directly
-    b.set((0, 3, 0), "minecraft:lever[face=wall,facing=north,powered=false]")
+    # the lever stands on stone beside the piston and powers it as a neighbour. Not on the
+    # piston's face: an extending piston base is no longer a full block, so a lever hanging
+    # on it pops in the same tick and the piston retracts at once (26.3 game run, #38)
+    b.set((0, 1, 0), "minecraft:stone")
+    b.set((0, 2, 0), "minecraft:stone")
+    b.set((0, 3, 0), "minecraft:lever[face=floor,facing=north,powered=false]")
     b.set((1, height + 2, 1), "minecraft:hopper[enabled=true,facing=east]")
     b.set((2, height + 2, 1), "minecraft:chest[facing=west,type=single,waterlogged=false]")
     return b

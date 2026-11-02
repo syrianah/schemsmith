@@ -20,8 +20,8 @@ from __future__ import annotations
 
 import contextlib
 import enum
-import os
 import struct
+import sys
 import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -66,7 +66,7 @@ def session_lock_held(world: Path) -> bool:
         return False
     try:
         with path.open("rb") as fh:
-            if os.name == "nt":
+            if sys.platform == "win32":
                 fh.read(1)  # a region locked by another process cannot be read on Windows
                 return False
             import fcntl  # noqa: PLC0415 - POSIX only
