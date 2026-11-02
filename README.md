@@ -173,7 +173,7 @@ In the game (creative, cheats on):
   /place template schemsmith:timer_v1_qc_dropper ~ ~ ~
 ```
 
-Next: [docs/workflow.md](docs/workflow.md) goes from a Python script to a build in your world. Every command and option: [docs/cli.md](docs/cli.md). Something looks wrong in the game: [docs/troubleshooting.md](docs/troubleshooting.md).
+Next: [docs/workflow.md](docs/workflow.md) goes from a Python script to a build in your world. Every command and option: [docs/cli.md](docs/cli.md). Something looks wrong in the game: [docs/troubleshooting.md](docs/troubleshooting.md). All documentation: [docs/README.md](docs/README.md).
 
 ## Why
 

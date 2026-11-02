@@ -1,15 +1,26 @@
 # Docs
 
-| Path | What |
-|---|---|
-| `plans/index.md` | Every phase with status, dependencies, PR and blockers |
-| `plans/_TEMPLATE.md` | The template each phase file follows |
-| `plans/active/` | Phases not yet merged (including not started and blocked ones) |
-| `plans/completed/` | Merged phases, with the agent's verification evidence |
-| `OPEN-QUESTIONS.md` | Product and legal decisions the owner has not made yet |
-| `adr/` | Architecture decision records |
-| `agent-rules.md` | Full rules for agents, code conventions, redstone facts |
-| `source-plan.pl.md` | The original project plan (Polish) |
+## For users
+
+Start with the [README](../README.md) (install and a five-minute tour), then:
+
+- [workflow.md](workflow.md): from an idea to a build in your world: generate, check, preview, `/place template`, Litematica, check the world.
+- [cli.md](cli.md): every `schemsmith` command and option, with examples.
+- [mcp.md](mcp.md): the MCP server for AI clients (Claude Code, Claude Desktop): setup, paths, paging, every tool.
+- [python-api.md](python-api.md): the Python API, and which names are public.
+- [modules.md](modules.md): the module library (redstone circuits, farms, buildings).
+- [lint-rules.md](lint-rules.md): every lint rule, what it finds and how it fixes it.
+- [troubleshooting.md](troubleshooting.md): problems people hit in the game, and what to do.
+
+## For contributors and agents
+
+Start with [AGENTS.md](../AGENTS.md), then:
+
+- [plans/index.md](plans/index.md): every phase with status, dependencies, PR and blockers. Phases not yet merged are in [plans/active/](plans/active/), merged ones with their verification evidence in [plans/completed/](plans/completed/); each follows [plans/_TEMPLATE.md](plans/_TEMPLATE.md).
+- [adr/](adr/): architecture decision records ([0001 stack](adr/0001-stack.md), [0002 harness](adr/0002-harness.md)).
+- [agent-rules.md](agent-rules.md): full rules for agents, code conventions, redstone facts, lessons from the game runs.
+- [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md): decisions only the owner makes.
+- [source-plan.pl.md](source-plan.pl.md): the owner's original project plan (Polish).
 
 ## Source of the plan
 
