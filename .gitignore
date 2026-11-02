@@ -229,3 +229,5 @@ generated/
 
 # output folder of the README five-minute tour
 /tour/
+# output folder of the docs/cli.md examples
+/out/

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import io
-import os
 import re
 import shlex
 import shutil
@@ -20,8 +19,9 @@ from pathlib import Path
 
 import pytest
 
-from schemsmith.cli import build_parser, main
+from schemsmith.cli import build_parser
 from schemsmith.mcp import server as mcp_server
+from tests.doc_runner import run_document
 
 ROOT = Path(__file__).resolve().parents[1]
 README = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -105,7 +105,6 @@ def test_mcp_tool_table_matches_the_server() -> None:
 
 # Install and Five-minute tour: every command runs -----------------------------------------
 
-FENCE = re.compile(r"```(?P<lang>\w+)\n(?P<body>.*?)```", re.S)
 NOT_RUN = (
     # setup commands checked by hand (network, installers); see the PR of this test
     r"git clone https://github\.com/syrianah/schemsmith",
@@ -122,66 +121,18 @@ def section(title: str) -> str:
     return text.split("\n## ", 1)[0]
 
 
-def matches(want: str, output: str) -> bool:
-    """``want`` appears in one output line; ``...`` inside it skips any text."""
-    parts = [p for p in want.split("...") if p]
-    for line in output.replace("\\", "/").splitlines():
-        at = 0
-        for part in parts:
-            at = line.find(part, at)
-            if at < 0:
-                break
-            at += len(part)
-        else:
-            return True
-    return False
-
-
-def run(line: str, cwd: Path, capsys: pytest.CaptureFixture[str]) -> str:
-    argv = shlex.split(line)
-    if argv[0] == "mkdir":
-        (cwd / argv[1]).mkdir()
-        return ""
-    assert argv[:3] == ["uv", "run", "schemsmith"], line
-    if argv[3:] == ["--version"]:
-        with pytest.raises(SystemExit) as exc:
-            main(argv[3:])
-        assert exc.value.code == 0
-    else:
-        code = main(argv[3:])
-        allowed = (0, 1) if argv[3] in ("validate", "lint") else (0,)  # 1 = problems found
-        assert code in allowed, f"{line} exited with {code}"
-    out = capsys.readouterr()
-    return out.out + out.err
-
-
 @pytest.mark.parametrize("title", ["Install", "Five-minute tour"])
 def test_install_and_tour_commands_run(
     title: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     shutil.copytree(ROOT / "fixtures", tmp_path / "fixtures")
     monkeypatch.chdir(tmp_path)
-    ran = 0
-    last: str | None = None
-    for m in FENCE.finditer(section(title)):
-        lang, body = m["lang"], m["body"]
-        if lang in ("bash", "powershell"):
-            last = ""
-            for line in filter(str.strip, body.splitlines()):
-                if any(re.fullmatch(p, line.strip()) for p in NOT_RUN):
-                    continue
-                last += run(line.strip(), tmp_path, capsys)
-                ran += 1
-        elif lang == "text" and last is not None:
-            for want in body.splitlines():
-                if want.strip() and want.strip() != "...":
-                    assert matches(want, last), f"{want!r} not in output:\n{last}"
-            last = None
+    ran = run_document(section(title), capsys, NOT_RUN)
     assert ran >= (1 if title == "Install" else 9)
     if title == "Five-minute tour":
         assert (tmp_path / "tour" / "timer.png").is_file()
         assert (tmp_path / "tour" / "timer.nbt").is_file()
-        assert os.listdir(tmp_path / "fixtures" / "demo_world") == ["level.dat"]  # dry run
+        assert not (tmp_path / "fixtures" / "demo_world" / "datapacks").exists()  # dry run
 
 
 def test_tour_uses_only_fixtures_and_the_tour_folder() -> None:

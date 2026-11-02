@@ -173,7 +173,7 @@ In the game (creative, cheats on):
   /place template schemsmith:timer_v1_qc_dropper ~ ~ ~
 ```
 
-Next: [docs/workflow.md](docs/workflow.md) goes from a Python script to a build in your world.
+Next: [docs/workflow.md](docs/workflow.md) goes from a Python script to a build in your world. Every command and option: [docs/cli.md](docs/cli.md).
 
 ## Why
 
