@@ -62,6 +62,21 @@ def test_properties_and_ignore_properties(tmp_path: Path) -> None:
     assert diff_world(duper(), world, AT, ignore_properties=True).differences == 0
 
 
+def test_bare_palette_name_is_the_default_state(tmp_path: Path) -> None:
+    """26.x worlds store a block in its default state as a bare name (seen in the owner's world)."""
+    r = Region((2, 1, 1))
+    r.set_block(0, 0, 0, "minecraft:hopper[enabled=true,facing=down]")
+    r.set_block(1, 0, 0, "minecraft:hopper[enabled=true,facing=north]")
+    s = Structure(regions=[r], data_version=4671)
+    world, folder = new_world(tmp_path)
+    ch = ChunkBuilder(0, 0)
+    ch.set(AT[0], AT[1], AT[2], "minecraft:hopper").set(AT[0] + 1, AT[1], AT[2], "minecraft:hopper")
+    write_region(folder, [ch], style="empty")
+    res = diff_world(s, world, AT)
+    assert res.matched == 1 and res.differences == 1
+    assert res.first[0].pos == (1, 0, 0)
+
+
 def test_ungenerated_chunks_are_reported_not_air(tmp_path: Path) -> None:
     world = world_with(tmp_path)
     res = diff_world(duper(), world, (40, 64, 4))  # chunk (2, 0) is not in the file
