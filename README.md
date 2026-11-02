@@ -6,7 +6,27 @@ A schematic smith for AI agents: design, lint, simulate and fix Minecraft schema
 
 ## Install
 
-schemsmith is not published on PyPI. Install it from a clone of this repo:
+schemsmith is not published on PyPI. You install it from a clone of this repo.
+
+You need:
+
+- **git**: https://git-scm.com/downloads (on Windows, "Git for Windows").
+- **uv**, the Python package manager schemsmith uses: https://docs.astral.sh/uv/getting-started/installation/
+- **Python 3.11 or newer.** uv downloads a suitable Python by itself if none is installed.
+
+Install uv on Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+or with `winget install --id=astral-sh.uv -e`. On Linux and macOS:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Open a new terminal afterwards, so `uv` is on your PATH. Then clone and set up schemsmith. These commands are the same in PowerShell and bash:
 
 ```bash
 git clone https://github.com/syrianah/schemsmith
@@ -14,6 +34,146 @@ cd schemsmith
 uv sync
 uv run schemsmith --version
 ```
+
+```text
+schemsmith 0.0.1
+```
+
+`uv run` runs schemsmith from the clone's own environment. Run every `uv run schemsmith ...` command from the clone's folder.
+
+**Without `uv run` (optional).** To get a `schemsmith` command that works in any folder, install it as a uv tool, from the clone or straight from GitHub:
+
+```bash
+uv tool install .
+uv tool install git+https://github.com/syrianah/schemsmith
+```
+
+Use one of the two. This also installs `schemsmith-mcp`. If uv warns that its tool folder is not on your PATH, run `uv tool update-shell` and open a new terminal. To update, `git pull` in the clone and run `uv tool install --reinstall .` (or `uv tool install --reinstall git+https://github.com/syrianah/schemsmith`); `uv tool upgrade` does not pick up a new commit. To remove it: `uv tool uninstall schemsmith`.
+
+**PowerShell notes.**
+
+- schemsmith prints UTF-8 (arrows such as `→`). If they look garbled in the console, run `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` once in that window. Output redirected to a file is always UTF-8.
+- Put paths with spaces in quotes: `uv run schemsmith info "C:\Users\me\My Schematics\farm.litematic"`. Forward slashes work too: `fixtures/timer_v3_fixed.litematic`.
+
+## Five-minute tour
+
+The commands below use only files from [fixtures/](fixtures/README.md) and write their outputs to a folder `tour`. They work in PowerShell and bash, from the clone's folder. Outputs are shortened with `...`.
+
+Make the output folder:
+
+```bash
+mkdir tour
+```
+
+**`info`**: what is in a file (format, size, regions, top materials).
+
+```bash
+uv run schemsmith info fixtures/timer_v1_qc_dropper.litematic
+```
+
+```text
+Format:       litematic v6
+Data version: 2975
+Size:         15x3x11 (x*y*z)
+Blocks:       210 (non-air)
+...
+     165  minecraft:stone
+      12  minecraft:redstone_wire
+...
+```
+
+**`dump --layer`**: one horizontal layer as ASCII, with a legend.
+
+```bash
+uv run schemsmith dump fixtures/timer_v1_qc_dropper.litematic --layer 1
+```
+
+```text
+Region 'Timer gry 2.5 min', layer y=1
+    012345678901234
+  0 ..........#....
+  1 ..........A.BC.
+...
+  B minecraft:dropper[facing=up,triggered=false]
+...
+```
+
+**`validate`**: every block state against the block list of a Minecraft version. This file declares 1.18.2 but uses a 1.21 block (a known quirk of the timer fixtures), so `validate` reports an error and exits with code 1.
+
+```bash
+uv run schemsmith validate fixtures/timer_v1_qc_dropper.litematic
+```
+
+```text
+fixtures/timer_v1_qc_dropper.litematic: checked against Minecraft 26.3 registry
+error: data-version-mismatch at (5,1,3): minecraft:waxed_copper_bulb needs Minecraft 1.21+ (data version 3953)...
+1 problem(s), 1 error(s)
+```
+
+**`lint`**: redstone and block placement problems ([docs/lint-rules.md](docs/lint-rules.md)). This timer has the two bugs schemsmith was built to catch.
+
+```bash
+uv run schemsmith lint fixtures/timer_v1_qc_dropper.litematic
+```
+
+```text
+...
+warning: locked-repeater-may-freeze-on at (10,1,9): repeater is used as a gate through locking...
+warning: qc-unintended-power at (12,1,1): dropper is quasi-powered by redstone_torch (12,2,2)...
+...
+8 finding(s): 0 error(s), 5 warning(s), 3 info
+```
+
+**`materials`**: the items you need, in stacks and shulker boxes.
+
+```bash
+uv run schemsmith materials fixtures/timer_v1_qc_dropper.litematic
+```
+
+```text
+minecraft:stone                 165  2 stacks + 37
+minecraft:redstone               12  12
+...
+total: 210 items, 16 stacks, 1 shulker box(es)
+```
+
+**`render`**: an isometric PNG preview (block colours, no game textures).
+
+```bash
+uv run schemsmith render fixtures/timer_v1_qc_dropper.litematic --output tour/timer.png
+```
+
+```text
+wrote tour/timer.png
+```
+
+**`convert`**: another format (`.litematic`, `.schem`, `.nbt`), with notes on what changed or could not be kept.
+
+```bash
+uv run schemsmith convert fixtures/timer_v1_qc_dropper.litematic tour/timer.nbt
+```
+
+```text
+note: set the OutputSignal of 3 comparators from the saved state...
+dropped: metadata (name/author/description) not supported by .nbt
+wrote tour/timer.nbt (210 blocks)
+```
+
+**`install --dry-run`**: what `install` would write into a world for `/place template`, without writing anything. `fixtures/demo_world` is an empty world folder (only `level.dat`); use your own world folder for real.
+
+```bash
+uv run schemsmith install fixtures/timer_v1_qc_dropper.litematic --world fixtures/demo_world --dry-run
+```
+
+```text
+would write fixtures/demo_world/datapacks/schemsmith/data/schemsmith/structure/timer_v1_qc_dropper.nbt
+...
+In the game (creative, cheats on):
+  /reload
+  /place template schemsmith:timer_v1_qc_dropper ~ ~ ~
+```
+
+Next: [docs/workflow.md](docs/workflow.md) goes from a Python script to a build in your world.
 
 ## Why
 

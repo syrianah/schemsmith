@@ -226,3 +226,6 @@ __marimo__/
 *.jar
 generated/
 .mc-cache/
+
+# output folder of the README five-minute tour
+/tour/
