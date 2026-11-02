@@ -139,6 +139,8 @@ wrote saves/My World/datapacks/schemsmith/pack.mcmeta (data pack format 121)
 - `install` never writes to `<world>/generated/`. That folder belongs to the game; a file put there by hand broke a world upgrade once ("Failed to upgrade the world"). If you have old files in `generated/`, move them out yourself.
 - Try it on a copy of your world first. `/place template` overwrites whatever is in the way.
 
+**Installing old schematics (made before 1.20.5).** Items inside containers were stored differently before Minecraft 1.20.5. A schematic from 1.20.4 or older keeps that old format, and on 26.3 filled shulker boxes inside a chest (Litematica's "+NBT" items) arrived **empty** after `/place template`, while plain items such as bone meal in a hopper survived ([#39](https://github.com/syrianah/schemsmith/issues/39)). `install`, `convert`, `validate` and the MCP tool warn about such items: "N container items in pre-1.20.5 format at ...: their contents may be lost when placed in 26.x; refill them in game (#39)". schemsmith does not rewrite the items itself, because the game's own upgrade is the reference. Refill the listed containers by hand after placing.
+
 A second version goes in under a new name:
 
 ```bash

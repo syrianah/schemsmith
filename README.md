@@ -101,6 +101,10 @@ Ask the agent to "find and fix the redstone bugs in `timer_v1_qc_dropper.litemat
 2. `schematic_edit` with each diagnostic's `fix`, first as a preview, then with `apply=true` → `timer_v1_qc_dropper.edited.litematic`;
 3. `redstone_lint` on the new file → both rules gone. The original file is untouched.
 
+## Known limitations
+
+- Filled shulker boxes (and other container items) in schematics made before Minecraft 1.20.5 can arrive empty when placed in 26.x; schemsmith warns about them ([#39](https://github.com/syrianah/schemsmith/issues/39)).
+
 ## License
 
 [Apache-2.0](LICENSE). schemsmith does not ship any Mojang assets or game files.
