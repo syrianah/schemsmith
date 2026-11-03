@@ -110,6 +110,17 @@ def test_stair_corner_shapes() -> None:
     assert r2.get_block(1, 0, 1).get("shape") == "inner_right"
 
 
+def test_stacked_walls_settle_in_one_call() -> None:
+    """The lower wall is tall only once the wall above it has its connection."""
+    r = Region((2, 2, 1))
+    for y in (0, 1):
+        r.set_block(0, y, 0, "stone_brick_wall")
+        r.set_block(1, y, 0, "stone_bricks")
+    update_shapes(r)
+    assert r.get_block(0, 0, 0).get("east") == "tall"
+    assert update_shapes(r) == 0
+
+
 def test_place_module_grows_region_and_rotates() -> None:
     s = new_structure("26.3", (2, 2, 2))
     part = get_module("t_flip_flop").build()

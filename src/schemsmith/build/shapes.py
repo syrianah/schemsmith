@@ -72,7 +72,20 @@ def _stair_shape(region: Region, p: Vec3, s: BlockState) -> str:
 
 
 def update_shapes(region: Region) -> int:
-    """Recompute connection properties in place; returns how many blocks changed."""
+    """Recompute connection properties in place; returns how many blocks changed.
+
+    Repeats until nothing changes: a wall's shape depends on the wall above it, so stacked
+    walls settle only once the upper one has been updated.
+    """
+    changed = 0
+    while True:
+        step_changed = _update_shapes_once(region)
+        if not step_changed:
+            return changed
+        changed += step_changed
+
+
+def _update_shapes_once(region: Region) -> int:
     changed = 0
     graph = PowerGraph.build(region)
     updates: dict[Vec3, BlockState] = {}
