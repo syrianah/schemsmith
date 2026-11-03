@@ -32,7 +32,7 @@ Stop for review after each step. A later step cannot save an earlier one.
 - **Read at three distances.** Far: silhouette. Middle: bays, bands and shadow lines. Near: material and detail. A build with only near-distance detail looks flat from afar and noisy up close.
 - **Base, body, top.** Heavy and dark low down, calm in the middle, expressive at the roofline. The body gets the least decoration.
 - **The roof is a material decision, not a patchwork.** Use one roof material, or a transition with a reason (rain paths, repairs). Camouflage patches read as damage.
-- **Fit the place.** Reuse the neighbours' scale and at most one or two of their materials. A new building next to the owners' builds is a relative, not a copy: take their form and rhythm, and give it its own palette. Different is fine; unrelated is not.
+- **Fit the place, do not copy it.** A reference is inspiration. Name the one to three ideas you take from it and design the rest yourself. Swapping the palette on a neighbour's geometry and masonry still gives a copy. The new build should differ from the reference in silhouette and in its walls, and look related only through the ideas you named.
 
 ## 3. Structure must be believable
 
@@ -123,7 +123,7 @@ Never copy one orientation's hinge logic to another wall. Doors need both halves
 - **Circle walls:** a cell is wall if an **orthogonal** neighbour is outside. Counting diagonal neighbours adds stray single columns inside at the inner corners.
 - **Lines on circles:** walk rails so that they stay orthogonally connected. Check with `schemsmith lint --rule fence-gap`.
 - **Repeat, do not randomise.** A round plan has 8-fold symmetry about a block centre: design or capture one 45° wedge, then mirror and rotate it.
-- Prefer capturing a human-built bay with `schemsmith world extract` over inventing the finish in code.
+- Capture a human-built bay with `schemsmith world extract` when the owners built it as a pattern for this build. Never capture a neighbouring build's finish on your own: that makes a copy.
 
 ## 10. Review before you call it good
 
@@ -135,7 +135,8 @@ Look at real-texture renders from all four sides and from eye level. An isometri
 - [ ] Entrance is obvious, framed and reachable. Every door has a route on both sides.
 - [ ] Looking in from every door shows the room, not a wall. Eye-level render from inside each door.
 - [ ] No chimney or shaft crosses a room. Every flue cell has a fire on hay.
-- [ ] The palette is not the same as the neighbours' palette. List the blocks they share.
+- [ ] It is not a copy of a reference. Side by side, the silhouette and the wall each differ, and you can name the ideas taken.
+- [ ] Owners chose the gradient from rendered samples. Do not choose a gradient for them.
 - [ ] Openings stack on axes, with one window family.
 - [ ] Bands and cornices are unbroken round every corner.
 - [ ] Palette is small and every accent has a reason. Remove three things and check whether it improves.
