@@ -32,6 +32,14 @@ Blocks that look or behave differently in game than in the schematic preview.
 | `two-block-half` | error | Doors, tall plants, tall seagrass, pitcher plants, small dripleaf (`half=lower/upper`) and beds (`part`) with the other half missing. | Add the other half when its position is air. |
 | `chest-partner` | warning | Chests saved as `type=left/right` with no matching partner. | `type=single`. |
 
+## Build quality (`src/schemsmith/redstone/lint/look.py`)
+
+Lint does not judge looks: judge those from real-texture renders from every side and by people. See the `minecraft-architect` skill.
+
+| Rule | Severity | Finds | Fix |
+|---|---|---|---|
+| `fence-gap` | warning | Fences on one layer that continue diagonally with an open corner and no fence next to them: a visible hole in the rail. Ledges and walls are not checked, because hand-built round walls step them diagonally on purpose. | Suggestion only: put a fence at the named corner. |
+
 ## Block states the game recomputes (issue #26, `src/schemsmith/redstone/lint/placement_state.py`)
 
 | Rule | Severity | Finds | Fix |

@@ -74,6 +74,7 @@ Redstone and building knowledge lives in project skills, loaded automatically by
 
 - [`.claude/skills/minecraft-redstone/SKILL.md`](../.claude/skills/minecraft-redstone/SKILL.md): block state conventions (`facing`), power, quasi-connectivity, timing, containers, pistons, design patterns, review checklist. **Read it before phases 04, 07 and 08.**
 - [`.claude/skills/minecraft-building/SKILL.md`](../.claude/skills/minecraft-building/SKILL.md): creative builds, hiding redstone, minigame structure, survival-friendly delivery, plus [ideas.md](../.claude/skills/minecraft-building/ideas.md).
+- [`.claude/skills/minecraft-architect/SKILL.md`](../.claude/skills/minecraft-architect/SKILL.md): how a build should look: massing, structure, doors and windows, materials, gradients, roofs, chimneys, [interiors](../.claude/skills/minecraft-architect/interiors.md), review checklist.
 
 The real game is the source of truth, not our simulator or these skills. When unsure, write a `game`-marked test, and fix the skill in the same PR when it turns out to be wrong.
 

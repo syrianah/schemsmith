@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from schemsmith.core import Structure
 from schemsmith.diagnostics import Diagnostic
 from schemsmith.redstone.graph import PowerGraph
+from schemsmith.redstone.lint import look as _look  # noqa: F401  (registers its rules)
 from schemsmith.redstone.lint.fixes import apply_fix
 from schemsmith.redstone.lint.placement import PLACEMENT_RULES as _BASIC
 from schemsmith.redstone.lint.placement_state import PLACEMENT_STATE_RULES
