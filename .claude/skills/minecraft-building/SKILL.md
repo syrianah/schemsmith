@@ -26,7 +26,7 @@ A good build has an idea, a silhouette, depth and a palette, in that order. On a
 
 - **Depth beats flat walls.** Pull pillars and beams 1 block out, push windows 1 block in. Use stairs, slabs, trapdoors, walls and fences for detail.
 - **Frame and fill.** A strong frame (logs, pillars, stone bricks) with a lighter fill (planks, plaster-like white concrete, calcite).
-- **Gradients.** Blend materials gradually, e.g. cobblestone → stone → andesite, or mossy variants near the ground.
+- **Gradients.** Only between close neighbours in shade, following structure and weathering, never block by block at random. See [minecraft-architect](../minecraft-architect/SKILL.md), which also covers proportions, doors, finish and interiors.
 - **Roofs do the heavy lifting.** Steep roofs (stairs), overhangs of at least 1 block and a different roof material give character fast.
 - **Scale and proportion.** Doors 2–3 high, ceilings at least 3 high inside, big halls 5+ high. Avoid perfect cubes.
 - **Lighting** is decoration and mob-proofing: lanterns, hidden light sources under carpets or behind leaves, light blocks in creative only.
