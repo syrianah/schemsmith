@@ -32,7 +32,7 @@ Stop for review after each step. A later step cannot save an earlier one.
 - **Read at three distances.** Far: silhouette. Middle: bays, bands and shadow lines. Near: material and detail. A build with only near-distance detail looks flat from afar and noisy up close.
 - **Base, body, top.** Heavy and dark low down, calm in the middle, expressive at the roofline. The body gets the least decoration.
 - **The roof is a material decision, not a patchwork.** Use one roof material, or a transition with a reason (rain paths, repairs). Camouflage patches read as damage.
-- **Fit the place.** Reuse the neighbours' scale and one or two of their materials. Different is fine; unrelated is not.
+- **Fit the place.** Reuse the neighbours' scale and at most one or two of their materials. A new building next to the owners' builds is a relative, not a copy: take their form and rhythm, and give it its own palette. Different is fine; unrelated is not.
 
 ## 3. Structure must be believable
 
@@ -61,6 +61,7 @@ Stop for review after each step. A later step cannot save an earlier one.
 - **Frame.** Jambs and a lintel in a stronger material, with the lintel wider than the opening. Use one keystone at most.
 - **Above it.** Light or a transom only if it lines up with the openings above.
 - **Lead somewhere.** Every door needs a real route on both sides. An upper door needs a landing outside and real access inside.
+- **The first view is open.** Stand in each door and look straight in: you should see the room, not a wall. Keep at least 6 clear blocks ahead, 2 high, and move shafts, stairs and storage to the sides. Check this for every door, including service doors and upper doors.
 - **Lighting.** A light on each side or one above, never only on one side without a reason.
 
 ### Door block rules
@@ -112,7 +113,8 @@ Never copy one orientation's hinge logic to another wall. Doors need both halves
 - **Eaves.** Show thickness and support. Use a calm edge, with slabs where stairs would look jagged.
 - **Trim.** Copper or a contrast edge goes on rakes, ridges and flashing, not across the roof field.
 - **Chimneys.** Base, plain shaft, then a modest cap. A band or two is enough. Taper by stepping the shaft, not by adding rings. Ledges around a shaft should be rare, because they read as stacked plates.
-- **Hidden fire.** Put the campfire deep in a narrow flue on a hay block and keep the flue open above it. Check it from above.
+- **A chimney never crosses a room.** Stand it outside, free or against an outer wall, and link it to the building low down. A stack through a hall takes the floor, blocks the mezzanine and turns the view from a door into a wall. No architect routes a shaft through the middle of a room.
+- **Hidden fire fills the flue.** Every flue cell gets its own campfire on its own hay block, so a 3×3 flue has 9. One fire gives a thin thread of smoke that does not match the width of the stack. Set the fires about 9 blocks below the top, keep the flue open above them and check from above.
 - **Pipes follow a logic.** A pipe runs from a source to a destination: gutter to ground, tank to machine. Joints go at regular intervals and at changes of direction. A pipe that starts and ends nowhere is decoration, and it shows.
 
 ## 9. Generators
@@ -131,6 +133,9 @@ Look at real-texture renders from all four sides and from eye level. An isometri
 - [ ] One lead volume, clear base, body and top.
 - [ ] Every load reaches the ground. Nothing floats.
 - [ ] Entrance is obvious, framed and reachable. Every door has a route on both sides.
+- [ ] Looking in from every door shows the room, not a wall. Eye-level render from inside each door.
+- [ ] No chimney or shaft crosses a room. Every flue cell has a fire on hay.
+- [ ] The palette is not the same as the neighbours' palette. List the blocks they share.
 - [ ] Openings stack on axes, with one window family.
 - [ ] Bands and cornices are unbroken round every corner.
 - [ ] Palette is small and every accent has a reason. Remove three things and check whether it improves.
