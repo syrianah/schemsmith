@@ -22,9 +22,10 @@ Stop for review after each step. A later step cannot save an earlier one.
 1. **References.** Take the owners' images and their nearby builds apart: proportions, palette with rough shares, number of accents, where the eye lands, where dirt collects. Write this down before placing anything.
 2. **Massing.** One placeholder block only. Check the silhouette from far away and from every side.
 3. **Structure and openings.** Still in placeholders: piers, floors, roof, doors, windows and routes.
-4. **One bay in real materials.** Plinth to roof, including the finish.
-5. **The whole build.** Repeat the approved bay. Change only what the plan needs.
-6. **Weathering and gradient.** Last, and only where a reason exists.
+4. **Materials and gradient samples.** The owners choose from rendered samples.
+5. **One bay in real materials.** Plinth to roof, with the chosen gradient and finish, and the inside where it matters.
+6. **The whole build.** Reuse the code of the approved bay. Change only what the plan needs.
+7. **Weathering.** Last, and only where a reason exists.
 
 ## 2. Massing and hierarchy
 
@@ -124,6 +125,8 @@ Never copy one orientation's hinge logic to another wall. Doors need both halves
 - **Lines on circles:** walk rails so that they stay orthogonally connected. Check with `schemsmith lint --rule fence-gap`.
 - **Repeat, do not randomise.** A round plan has 8-fold symmetry about a block centre: design or capture one 45° wedge, then mirror and rotate it.
 - Capture a human-built bay with `schemsmith world extract` when the owners built it as a pattern for this build. Never capture a neighbouring build's finish on your own: that makes a copy.
+- **Leave a machine untouched.** When a build includes a farm or a circuit, run `update_shapes` on the building first, then add the machine's blocks. Copy `region.block_entities` too: `set_block` copies only the block, so droppers and hoppers arrive empty. Then compare `lint` of the combined file with `lint` of the machine alone. A new finding means the build changed the machine.
+- **Keep install output visible.** `schemsmith install` refuses to replace a structure without `--overwrite`. A filtered log can hide that refusal, and you test the old file.
 
 ## 10. Review before you call it good
 
@@ -142,7 +145,9 @@ Look at real-texture renders from all four sides and from eye level. An isometri
 - [ ] Palette is small and every accent has a reason. Remove three things and check whether it improves.
 - [ ] No camouflage patches. Tone changes follow water, joints or structure.
 - [ ] Next to the reference images, side by side: what is different, and is that intended?
-- [ ] The interior has a purpose and a route ([interiors.md](interiors.md)).
+- [ ] The interior has a purpose and a route ([interiors.md](interiors.md)). A section render through every room, with rails on every open edge.
+- [ ] Each pipe shows its source and destination in a render from a side where nothing hides it.
+- [ ] Any machine inside is unchanged: lint of the combined file against lint of the machine alone.
 
 Have someone who has not seen your reasoning critique the renders against the references: another agent with no design notes, and then the owners. **The owners decide what looks good.** Report what you checked and how, never "it looks great" from code alone.
 
